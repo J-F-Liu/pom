@@ -1,0 +1,12 @@
+[package]
+name = "pom"
+version = "0.1.0"
+authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
+homepage = "https://github.com/J-F-Liu/pom"
+documentation = "https://docs.rs/pom/"
+repository = "https://github.com/J-F-Liu/pom.git"
+license = "MIT"
+readme = "README.md"
+description = "PEG parser combinators using operator overloading without macros."
+
+[dependencies]
