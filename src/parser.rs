@@ -9,16 +9,19 @@ pub struct Parser<I, O> {
 }
 
 impl<I, O> Parser<I, O> {
+	/// Create new parser.
 	pub fn new<P>(parse: P) -> Parser<I, O>
 		where P: Fn(&mut Input<I>) -> Result<O> + 'static
 	{
 		Parser { method: Box::new(parse) }
 	}
 
+	/// Apply the parser to parse input.
 	pub fn parse(&self, input: &mut Input<I>) -> Result<O> {
 		(self.method)(input)
 	}
 
+	/// Convert parser result to desired value.
 	pub fn map<U, F>(self, f: F) -> Parser<I, U>
 		where F: Fn(O) -> U + 'static,
 			  I: 'static,
@@ -28,6 +31,31 @@ impl<I, O> Parser<I, O> {
 		Parser::new(move |input: &mut Input<I>| self.parse(input).map(&f))
 	}
 
+	/// Collect all matched input symbols.
+	pub fn collect(self) -> Parser<I, Vec<I>>
+		where I: Clone + 'static,
+			  O: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position;
+			self.parse(input).map(|_|{
+				let end = input.position;
+				input.data[start..end].to_vec()
+			})
+		})
+	}
+
+	/// Discard parser result.
+	pub fn discard(self) -> Parser<I, ()>
+		where I: 'static,
+			  O: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			self.parse(input).map(|_|())
+		})
+	}
+
+	/// Make parser optional.
 	pub fn opt(self) -> Parser<I, Option<O>>
 		where I: 'static,
 			  O: 'static
@@ -40,6 +68,9 @@ impl<I, O> Parser<I, O> {
 		})
 	}
 
+	/// `p.repeat(0..)` repeat p zero or more times
+	/// `p.repeat(1..)` repeat p one or more times
+	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
 	pub fn repeat<R>(self, range: R) -> Parser<I, Vec<O>>
 		where R: RangeArgument<usize> + Debug + 'static,
 			  I: 'static,
@@ -359,6 +390,7 @@ fn byte_works() {
 	let mut input = Input::new(b"abcde");
 	let parser = term(b'a') + one_of(b"ab") - term(b'C');
 	let output = parser.parse(&mut input);
+	assert_eq!(output, Err(Error::Mismatch{message: "expect: 67, found: 99".to_string(), position: 2}));
 	assert_eq!(input.position, 0);
 
 	let parser = term(b'a') + none_of(b"AB") - term(b'c') + seq(b"de");

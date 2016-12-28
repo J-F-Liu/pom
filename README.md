@@ -18,13 +18,15 @@ Parser combinators created using operator overloading without macros.
 
 |Parser Combinators|Description|
 | --- | --- |
-| p+q | Match p and q, if both success return a pair of results. |
-| p-q | Match p and q, if both success return result of p. |
+| p + q | Match p and q, if both success return a pair of results. |
+| p - q | Match p and q, if both success return result of p. |
 | -p | Success when p success, doen't consume input. |
 | !p | Success when p fail, doen't consume input. |
 |p.opt()|Make parser optional.|
-|p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>|
+|p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
 |p.map(f)|Convert parser result to desired value.|
+|p.collect()|Collect all matched input symbols.|
+|p.discard()|Discard parser result.|
 
 ## Example code
 ```rust
