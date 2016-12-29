@@ -321,6 +321,18 @@ pub fn skip<I>(n: usize) -> Parser<I, ()>
 	})
 }
 
+/// Call a parser factory, can be used to create recursive parsers.
+pub fn call<I, O, F>(parser_factory: F) -> Parser<I, O>
+	where I: 'static,
+		  O: 'static,
+		  F: Fn() -> Parser<I, O> + 'static
+{
+	Parser::new(move |input: &mut Input<I>| {
+		let parser = parser_factory();
+		parser.parse(input)
+	})
+}
+
 /// Success when end of file is reached.
 pub fn eof<I>() -> Parser<I, ()>
 	where I: Copy + Display + 'static
@@ -456,4 +468,21 @@ fn char_works() {
 				 term('d').map(|_| ('0', '0'));
 	let output = parser.parse(&mut input);
 	assert_eq!(output, Ok(('a', 'b')));
+}
+
+#[test]
+fn recursive_parser() {
+	#[derive(Debug, PartialEq)]
+	enum Expr{
+		Empty,
+		Group(Box<Expr>)
+	}
+	fn expr() -> Parser<u8, Expr> {
+		  (term(b'(') + call(expr) - term(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
+		| empty().map(|_|Expr::Empty)
+	}
+	let mut input = Input::new(b"(())");
+	let parser = expr();
+	let output = parser.parse(&mut input);
+	assert_eq!(output, Ok(Expr::Group(Box::new(Expr::Group(Box::new(Expr::Empty))))));
 }

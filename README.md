@@ -36,6 +36,7 @@ And the code is easier to debug than macros.
 |not_a(predict)|Sucess when predict return false on current input symbol.|
 |take(n)|Read *n* symbols.|
 |skip(n)|Skip *n* symbols.|
+|call(pf)|Call a parser factory, can used to create recursive parsers.|
 
 |Parser Combinators|Description|
 | --- | --- |
