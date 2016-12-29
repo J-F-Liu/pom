@@ -12,9 +12,11 @@ Parser combinators created using operator overloading without macros.
 |seq(s) |Match sequence of symbols.|
 |one_of(set) |Sucess when current input symbol is one of the set.|
 |none_of(set)|Sucess when current input symbol is none of the set.|
-|range(r)|Sucess when the range contains current input symbol.|
-|is_a(predict)|Sucess when predict return true on current input symbol.|
+|range(r)    |Sucess when the range contains current input symbol.|
+|is_a(predict) |Sucess when predict return true on current input symbol.|
 |not_a(predict)|Sucess when predict return false on current input symbol.|
+|take(n)|Read *n* symbols.|
+|skip(n)|Skip *n* symbols.|
 
 |Parser Combinators|Description|
 | --- | --- |

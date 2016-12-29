@@ -275,6 +275,52 @@ pub fn range<I, R>(set: R) -> Parser<I, I>
 	})
 }
 
+/// Read n symbols.
+pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
+	where I: Copy + 'static
+{
+	Parser::new(move |input: &mut Input<I>| {
+		let start = input.position;
+		let mut symbols = Vec::with_capacity(n);
+		while let Some(symbol) = input.current() {
+			input.advance();
+			symbols.push(symbol);
+			if symbols.len() == n {
+				break;
+			}
+		}
+		if symbols.len() < n {
+			input.position = start;
+			Err(Error::Incomplete)
+		} else {
+			Ok(symbols)
+		}
+	})
+}
+
+/// Skip n symbols.
+pub fn skip<I>(n: usize) -> Parser<I, ()>
+	where I: Copy + 'static
+{
+	Parser::new(move |input: &mut Input<I>| {
+		let start = input.position;
+		let mut count = 0;
+		while let Some(_) = input.current() {
+			input.advance();
+			count += 1;
+			if count == n {
+				break;
+			}
+		}
+		if count < n {
+			input.position = start;
+			Err(Error::Incomplete)
+		} else {
+			Ok(())
+		}
+	})
+}
+
 /// Success when end of file is reached.
 pub fn eof<I>() -> Parser<I, ()>
 	where I: Copy + Display + 'static
