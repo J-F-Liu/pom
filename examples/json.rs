@@ -2,7 +2,7 @@ extern crate pom;
 use pom::{Input};
 use pom::parser::*;
 
-use std::str::{self, FromStr};
+use std::str::FromStr;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
