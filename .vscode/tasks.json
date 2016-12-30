@@ -1,0 +1,27 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "0.1.0",
+	"command": "cargo",
+	"isShellCommand": true,
+	"showOutput": "always",
+	"echoCommand": true,
+	"suppressTaskName": true,
+	"tasks": [
+		{
+			"taskName": "json",
+			"args": [
+				"build",
+				"--example",
+				"json"
+			]
+		},
+		{
+			"taskName": "release",
+			"args": [
+				"build",
+				"--release"
+			]
+		}
+	]
+}

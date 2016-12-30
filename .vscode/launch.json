@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug",
+      "type": "lldb-mi",
+      "request": "launch",
+	  "preLaunchTask": "json",
+      "target": "./target/debug/examples/json",
+      "cwd": "${workspaceRoot}"
+    }
+  ]
+}
