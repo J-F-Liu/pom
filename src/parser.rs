@@ -1,5 +1,5 @@
 use std::fmt::{Display, Debug};
-use std::ops::{Add, Sub, BitOr, Neg, Not};
+use std::ops::{Add, Sub, Mul, BitOr, Neg, Not};
 use std::collections::range::RangeArgument;
 use super::{Result, Error, Input};
 
@@ -369,7 +369,7 @@ impl<I, O, U> Add<Parser<I, U>> for Parser<I, O> {
 	}
 }
 
-/// Sequence discard value
+/// Sequence discard second value
 impl<I, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 	type Output = Parser<I, O>;
 
@@ -381,6 +381,26 @@ impl<I, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position;
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|_| out1));
+			if result.is_err() {
+				input.position = start;
+			}
+			result
+		})
+	}
+}
+
+/// Sequence discard first value
+impl<I, O, U> Mul<Parser<I, U>> for Parser<I, O> {
+	type Output = Parser<I, U>;
+
+	fn mul(self, other: Parser<I, U>) -> Self::Output
+		where I: 'static,
+			  O: 'static,
+			  U: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position;
+			let result = self.parse(input).and_then(|_| other.parse(input).map(|out2| out2));
 			if result.is_err() {
 				input.position = start;
 			}

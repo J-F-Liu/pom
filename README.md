@@ -42,6 +42,7 @@ And the code is easier to debug than macros.
 | --- | --- |
 | p + q | Match p and q, if both success return a pair of results. |
 | p - q | Match p and q, if both success return result of p. |
+| p * q | Match p and q, if both success return result of q. |
 | -p | Success when p success, doen't consume input. |
 | !p | Success when p fail, doen't consume input. |
 |p.opt()|Make parser optional.|
