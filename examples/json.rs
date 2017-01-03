@@ -37,16 +37,14 @@ fn string() -> Parser<u8, String> {
 }
 
 fn array() -> Parser<u8, Vec<JsonValue>> {
-	let elems = call(value) + (term(b',') * space() * call(value)).repeat(0..);
-	let elems = elems.map(|(first, mut elements)|{elements.insert(0, first); elements});
+	let elems = list(call(value), term(b',') * space());
 	let arr = term(b'[') * space() * elems.opt() - term(b']');
 	arr.map(|elems|elems.unwrap_or(vec![]))
 }
 
 fn object() -> Parser<u8, HashMap<String, JsonValue>> {
-	let member = || string() - space() - term(b':') - space() + call(value);
-	let members = member() + (term(b',') * space() * member()).repeat(0..);
-	let members = members.map(|(first, mut members)|{members.insert(0, first); members});
+	let member = string() - space() - term(b':') - space() + call(value);
+	let members = list(member, term(b',') * space());
 	let obj = term(b'{') * space() * members.opt() - term(b'}');
 	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<String,JsonValue>>())
 }

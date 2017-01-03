@@ -157,6 +157,34 @@ pub fn seq<I>(tag: &'static [I]) -> Parser<I, &[I]>
 	})
 }
 
+/// Parse separated list.
+pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I, Vec<O>>
+	where I: 'static,
+		  O: 'static,
+		  U: 'static
+{
+	Parser::new(move |input: &mut Input<I>| {
+		let start = input.position;
+		let mut items = vec![];
+		if let Ok(first_item) = parser.parse(input) {
+			items.push(first_item);
+			while let Ok(_) = separator.parse(input) {
+				match parser.parse(input) {
+					Ok(more_item) => items.push(more_item),
+					Err(error) => {
+						input.position = start;
+						return Err(Error::Mismatch{
+							message: format!("expect item after separator, found: {:?}", error),
+							position: input.position,
+						});
+					}
+				}
+			}
+		}
+		return Ok(items);
+	})
+}
+
 /// Sucess when current input symbol is one of the set.
 pub fn one_of<I>(set: &'static [I]) -> Parser<I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static
