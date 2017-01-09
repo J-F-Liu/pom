@@ -3,6 +3,7 @@ use pom::{Input, Train};
 use pom::parser::*;
 
 use std::str::FromStr;
+use std::char::{decode_utf16, REPLACEMENT_CHARACTER};
 use std::iter::FromIterator;
 use std::collections::HashMap;
 
@@ -33,8 +34,11 @@ fn string() -> Parser<char, String> {
 		| term('b').map(|_|'\x08') | term('f').map(|_|'\x0C')
 		| term('n').map(|_|'\n') | term('r').map(|_|'\r') | term('t').map(|_|'\t');
 	let escape_sequence = term('\\') * special_char;
-	let string = term('"') * (none_of("\\\"") | escape_sequence).repeat(0..) - term('"');
-	string.map(|v|String::from_iter(v))
+	let char_string = (none_of("\\\"") | escape_sequence).repeat(1..).map(|chars|String::from_iter(chars));
+	let utf16_char = term('\\') * term('u') * is_a(|c:char|c.is_digit(16)).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_iter(digits), 16).unwrap());
+	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
+	let string = term('"') * (char_string | utf16_string).repeat(0..) - term('"');
+	string.map(|strings|strings.concat())
 }
 
 fn array() -> Parser<char, Vec<JsonValue>> {
@@ -79,7 +83,8 @@ fn main() {
             },
             "Animated" : false,
             "IDs": [116, 943, 234, 38793]
-        }
+        },
+        "escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
     }"#.knots();
 
 	let mut input = Input::new(test.as_slice());
