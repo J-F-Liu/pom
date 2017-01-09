@@ -4,8 +4,10 @@
 
 mod input;
 mod result;
+mod train;
 pub mod parser;
 pub mod char_class;
 
 pub use input::Input;
 pub use result::{Result, Error};
+pub use train::Train;

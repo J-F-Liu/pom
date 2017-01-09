@@ -1,7 +1,7 @@
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, BitOr, Neg, Not};
 use std::collections::range::RangeArgument;
-use super::{Result, Error, Input};
+use super::{Result, Error, Input, Train};
 
 /// Parser combinator.
 pub struct Parser<I, O> {
@@ -126,10 +126,12 @@ pub fn term<I>(t: I) -> Parser<I, I>
 }
 
 /// Sucess when sequence of symbols match current input.
-pub fn seq<I>(tag: &'static [I]) -> Parser<I, &[I]>
-	where I: Copy + PartialEq + Display + 'static
+pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
+	where I: Copy + PartialEq + Display + 'static,
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
+		let tag = tag.knots();
 		let start = input.position;
 		let mut index = 0;
 		let result = loop {
@@ -186,11 +188,13 @@ pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I,
 }
 
 /// Sucess when current input symbol is one of the set.
-pub fn one_of<I>(set: &'static [I]) -> Parser<I, I>
-	where I: Copy + PartialEq + Display + Debug + 'static
+pub fn one_of<I, T>(set: &'static T) -> Parser<I, I>
+	where I: Copy + PartialEq + Display + Debug + 'static,
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
+			let set = set.knots();
 			if set.contains(&s) {
 				input.advance();
 				Ok(s)
@@ -207,11 +211,13 @@ pub fn one_of<I>(set: &'static [I]) -> Parser<I, I>
 }
 
 /// Sucess when current input symbol is none of the set.
-pub fn none_of<I>(set: &'static [I]) -> Parser<I, I>
-	where I: Copy + PartialEq + Display + Debug + 'static
+pub fn none_of<I, T>(set: &'static T) -> Parser<I, I>
+	where I: Copy + PartialEq + Display + Debug + 'static,
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
+			let set = set.knots();
 			if set.contains(&s) {
 				Err(Error::Mismatch {
 					message: format!("expect none of: {:?}, found: {}", set, s),
@@ -501,7 +507,7 @@ fn byte_works() {
 
 	let parser = term(b'a') + none_of(b"AB") - term(b'c') + seq(b"de");
 	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok( ((b'a', b'b'), &b"de"[..]) ) );
+	assert_eq!(output, Ok( ((b'a', b'b'), vec![b'd', b'e']) ) );
 
 	let parser = term(b'e') | term(b'd') | empty().map(|_| b'0');
 	let output = parser.parse(&mut input);
@@ -510,12 +516,12 @@ fn byte_works() {
 
 #[test]
 fn char_works() {
-	let chars = "abc".chars().collect::<Vec<char>>();
+	let chars = "abc".knots();
 	let mut input = Input::new(chars.as_slice());
-	let parser = term('a') + term('b') - term('c') |
-				 term('d').map(|_| ('0', '0'));
+	let parser = seq("ab") + term('c') |
+				 term('d').map(|_| (vec![], '0'));
 	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok(('a', 'b')));
+	assert_eq!(output, Ok((vec!['a', 'b'], 'c')));
 }
 
 #[test]
