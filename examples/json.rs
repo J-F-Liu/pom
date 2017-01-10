@@ -1,5 +1,5 @@
 extern crate pom;
-use pom::{Input};
+use pom::DataInput;
 use pom::char_class::hex_digit;
 use pom::parser::*;
 
@@ -87,6 +87,6 @@ fn main() {
         "escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
     }"#;
 
-	let mut input = Input::new(test);
+	let mut input = DataInput::new(test);
 	println!("{:?}", json().parse(&mut input));
 }

@@ -33,14 +33,14 @@ impl<I, O> Parser<I, O> {
 
 	/// Collect all matched input symbols.
 	pub fn collect(self) -> Parser<I, Vec<I>>
-		where I: Clone + 'static,
+		where I: Copy + 'static,
 			  O: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			self.parse(input).map(|_|{
-				let end = input.position;
-				input.data[start..end].to_vec()
+				let end = input.position();
+				input.segment(start, end)
 			})
 		})
 	}
@@ -73,11 +73,11 @@ impl<I, O> Parser<I, O> {
 	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
 	pub fn repeat<R>(self, range: R) -> Parser<I, Vec<O>>
 		where R: RangeArgument<usize> + Debug + 'static,
-			  I: 'static,
+			  I: Copy + 'static,
 			  O: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start_pos = input.position;
+			let start_pos = input.position();
 			let mut items = vec![];
 			while let Ok(item) = self.parse(input) {
 				items.push(item);
@@ -87,10 +87,10 @@ impl<I, O> Parser<I, O> {
 			}
 			if let Some(&start) = range.start() {
 				if items.len() < start {
-					input.position = start_pos;
+					input.backward(start_pos);
 					return Err(Error::Mismatch {
 						message: format!("expect repeat at least {} times, found {} times", start, items.len()),
-						position: input.position,
+						position: start_pos,
 					});
 				}
 			}
@@ -116,7 +116,7 @@ pub fn term<I>(t: I) -> Parser<I, I>
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect: {}, found: {}", t, s),
-					position: input.position,
+					position: input.position(),
 				})
 			}
 		} else {
@@ -132,7 +132,7 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 {
 	Parser::new(move |input: &mut Input<I>| {
 		let tag = tag.knots();
-		let start = input.position;
+		let start = input.position();
 		let mut index = 0;
 		let result = loop {
 			if index == tag.len() {
@@ -144,7 +144,7 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 				} else {
 					break Err(Error::Mismatch {
 						message: format!("seq expect: {}, found: {}", tag[index], s),
-						position: input.position,
+						position: input.position(),
 					});
 				}
 			} else {
@@ -153,7 +153,7 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 			index += 1;
 		};
 		if result.is_err() {
-			input.position = start;
+			input.backward(start);
 		}
 		result
 	})
@@ -161,12 +161,12 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 
 /// Parse separated list.
 pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I, Vec<O>>
-	where I: 'static,
+	where I: Copy + 'static,
 		  O: 'static,
 		  U: 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
-		let start = input.position;
+		let start = input.position();
 		let mut items = vec![];
 		if let Ok(first_item) = parser.parse(input) {
 			items.push(first_item);
@@ -174,10 +174,10 @@ pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I,
 				match parser.parse(input) {
 					Ok(more_item) => items.push(more_item),
 					Err(error) => {
-						input.position = start;
+						input.backward(start);
 						return Err(Error::Mismatch{
 							message: format!("expect item after separator, found: {:?}", error),
-							position: input.position,
+							position: start,
 						});
 					}
 				}
@@ -201,7 +201,7 @@ pub fn one_of<I, T>(set: &'static T) -> Parser<I, I>
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect one of: {:?}, found: {}", set, s),
-					position: input.position,
+					position: input.position(),
 				})
 			}
 		} else {
@@ -221,7 +221,7 @@ pub fn none_of<I, T>(set: &'static T) -> Parser<I, I>
 			if set.contains(&s) {
 				Err(Error::Mismatch {
 					message: format!("expect none of: {:?}, found: {}", set, s),
-					position: input.position,
+					position: input.position(),
 				})
 			} else {
 				input.advance();
@@ -247,7 +247,7 @@ pub fn is_a<I, F>(predict: F) -> Parser<I, I>
 			} else {
 				Err(Error::Mismatch {
 					message: format!("is_a predict failed on: {}", s),
-					position: input.position,
+					position: input.position(),
 				})
 			}
 		} else {
@@ -266,7 +266,7 @@ pub fn not_a<I, F>(predict: F) -> Parser<I, I>
 			if predict(s) {
 				Err(Error::Mismatch {
 					message: format!("not_a predict failed on: {}", s),
-					position: input.position,
+					position: input.position(),
 				})
 			} else {
 				input.advance();
@@ -289,7 +289,7 @@ pub fn range<I, R>(set: R) -> Parser<I, I>
 				if s < start {
 					return Err(Error::Mismatch {
 						message: format!("expect range: {:?}, found: {}", set, s),
-						position: input.position,
+						position: input.position(),
 					});
 				}
 			}
@@ -297,7 +297,7 @@ pub fn range<I, R>(set: R) -> Parser<I, I>
 				if s >= end {
 					return Err(Error::Mismatch {
 						message: format!("expect range: {:?}, found: {}", set, s),
-						position: input.position,
+						position: input.position(),
 					});
 				}
 			}
@@ -314,7 +314,7 @@ pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
 	where I: Copy + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
-		let start = input.position;
+		let start = input.position();
 		let mut symbols = Vec::with_capacity(n);
 		while let Some(symbol) = input.current() {
 			input.advance();
@@ -324,7 +324,7 @@ pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
 			}
 		}
 		if symbols.len() < n {
-			input.position = start;
+			input.backward(start);
 			Err(Error::Incomplete)
 		} else {
 			Ok(symbols)
@@ -337,7 +337,7 @@ pub fn skip<I>(n: usize) -> Parser<I, ()>
 	where I: Copy + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
-		let start = input.position;
+		let start = input.position();
 		let mut count = 0;
 		while let Some(_) = input.current() {
 			input.advance();
@@ -347,7 +347,7 @@ pub fn skip<I>(n: usize) -> Parser<I, ()>
 			}
 		}
 		if count < n {
-			input.position = start;
+			input.backward(start);
 			Err(Error::Incomplete)
 		} else {
 			Ok(())
@@ -375,7 +375,7 @@ pub fn eof<I>() -> Parser<I, ()>
 		if let Some(s) = input.current() {
 			Err(Error::Mismatch{
 				message: format!("expect end of file, found: {}", s),
-				position: input.position,
+				position: input.position(),
 			})
 		} else {
 			Ok(())
@@ -384,7 +384,7 @@ pub fn eof<I>() -> Parser<I, ()>
 }
 
 /// Sequence reserve value
-impl<I, O, U> Add<Parser<I, U>> for Parser<I, O> {
+impl<I: Copy, O, U> Add<Parser<I, U>> for Parser<I, O> {
 	type Output = Parser<I, (O, U)>;
 
 	fn add(self, other: Parser<I, U>) -> Self::Output
@@ -393,10 +393,10 @@ impl<I, O, U> Add<Parser<I, U>> for Parser<I, O> {
 			  U: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|out2| (out1, out2)));
 			if result.is_err() {
-				input.position = start;
+				input.backward(start);
 			}
 			result
 		})
@@ -404,7 +404,7 @@ impl<I, O, U> Add<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Sequence discard second value
-impl<I, O, U> Sub<Parser<I, U>> for Parser<I, O> {
+impl<I: Copy, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 	type Output = Parser<I, O>;
 
 	fn sub(self, other: Parser<I, U>) -> Self::Output
@@ -413,10 +413,10 @@ impl<I, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 			  U: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|_| out1));
 			if result.is_err() {
-				input.position = start;
+				input.backward(start);
 			}
 			result
 		})
@@ -424,7 +424,7 @@ impl<I, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Sequence discard first value
-impl<I, O, U> Mul<Parser<I, U>> for Parser<I, O> {
+impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 	type Output = Parser<I, U>;
 
 	fn mul(self, other: Parser<I, U>) -> Self::Output
@@ -433,10 +433,10 @@ impl<I, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 			  U: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			let result = self.parse(input).and_then(|_| other.parse(input).map(|out2| out2));
 			if result.is_err() {
-				input.position = start;
+				input.backward(start);
 			}
 			result
 		})
@@ -458,7 +458,7 @@ impl<I, O> BitOr for Parser<I, O> {
 }
 
 /// And predicate
-impl<I, O> Neg for Parser<I, O> {
+impl<I: Copy, O> Neg for Parser<I, O> {
 	type Output = Parser<I, bool>;
 
 	fn neg(self) -> Self::Output
@@ -466,16 +466,16 @@ impl<I, O> Neg for Parser<I, O> {
 			  O: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			let result = self.parse(input);
-			input.position = start;
+			input.backward(start);
 			result.map(|_| true)
 		})
 	}
 }
 
 /// Not predicate
-impl<I, O> Not for Parser<I, O> {
+impl<I: Copy, O> Not for Parser<I, O> {
 	type Output = Parser<I, bool>;
 
 	fn not(self) -> Self::Output
@@ -483,13 +483,13 @@ impl<I, O> Not for Parser<I, O> {
 			  O: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
-			let start = input.position;
+			let start = input.position();
 			let result = self.parse(input);
-			input.position = start;
+			input.backward(start);
 			match result {
 				Ok(_) => Err(Error::Mismatch{
 					message: "not predicate failed".to_string(),
-					position: input.position,
+					position: start,
 				}),
 				Err(_) => Ok(true),
 			}
@@ -497,46 +497,52 @@ impl<I, O> Not for Parser<I, O> {
 	}
 }
 
-#[test]
-fn byte_works() {
-	let mut input = Input::new(b"abcde");
-	let parser = term(b'a') + one_of(b"ab") - term(b'C');
-	let output = parser.parse(&mut input);
-	assert_eq!(output, Err(Error::Mismatch{message: "expect: 67, found: 99".to_string(), position: 2}));
-	assert_eq!(input.position, 0);
+#[cfg(test)]
+mod tests {
+	use ::parser::*;
+	use ::DataInput;
 
-	let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
-	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
+	#[test]
+	fn byte_works() {
+		let mut input = DataInput::new(b"abcde");
+		let parser = term(b'a') + one_of(b"ab") - term(b'C');
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Err(Error::Mismatch{message: "expect: 67, found: 99".to_string(), position: 2}));
+		assert_eq!(input.position(), 0);
 
-	let parser = term(b'e') | term(b'd') | empty().map(|_| b'0');
-	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok(b'0'));
-}
+		let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 
-#[test]
-fn char_works() {
-	let chars = "abc".knots();
-	let mut input = Input::new(chars.as_slice());
-	let parser = seq("ab") + term('c') |
-				 term('d').map(|_| (vec![], '0'));
-	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok((vec!['a', 'b'], 'c')));
-}
-
-#[test]
-fn recursive_parser() {
-	#[derive(Debug, PartialEq)]
-	enum Expr{
-		Empty,
-		Group(Box<Expr>)
+		let parser = term(b'e') | term(b'd') | empty().map(|_| b'0');
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Ok(b'0'));
 	}
-	fn expr() -> Parser<u8, Expr> {
-		  (term(b'(') + call(expr) - term(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
-		| empty().map(|_|Expr::Empty)
+
+	#[test]
+	fn char_works() {
+		let chars = "abc".knots();
+		let mut input = DataInput::new(chars.as_slice());
+		let parser = seq("ab") + term('c') |
+					term('d').map(|_| (vec![], '0'));
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Ok((vec!['a', 'b'], 'c')));
 	}
-	let mut input = Input::new(b"(())");
-	let parser = expr();
-	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok(Expr::Group(Box::new(Expr::Group(Box::new(Expr::Empty))))));
+
+	#[test]
+	fn recursive_parser() {
+		#[derive(Debug, PartialEq)]
+		enum Expr{
+			Empty,
+			Group(Box<Expr>)
+		}
+		fn expr() -> Parser<u8, Expr> {
+			(term(b'(') + call(expr) - term(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
+			| empty().map(|_|Expr::Empty)
+		}
+		let mut input = DataInput::new(b"(())");
+		let parser = expr();
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Ok(Expr::Group(Box::new(Expr::Group(Box::new(Expr::Empty))))));
+	}
 }

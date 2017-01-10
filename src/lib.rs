@@ -8,6 +8,6 @@ mod train;
 pub mod parser;
 pub mod char_class;
 
-pub use input::Input;
+pub use input::{Input, DataInput};
 pub use result::{Result, Error};
 pub use train::Train;
