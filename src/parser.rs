@@ -500,7 +500,7 @@ impl<I: Copy, O> Not for Parser<I, O> {
 #[cfg(test)]
 mod tests {
 	use ::parser::*;
-	use ::DataInput;
+	use ::{DataInput, TextInput};
 
 	#[test]
 	fn byte_works() {
@@ -521,8 +521,7 @@ mod tests {
 
 	#[test]
 	fn char_works() {
-		let chars = "abc".knots();
-		let mut input = DataInput::new(chars.as_slice());
+		let mut input = TextInput::new("abcd");
 		let parser = seq("ab") + term('c') |
 					term('d').map(|_| (vec![], '0'));
 		let output = parser.parse(&mut input);

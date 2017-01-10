@@ -1,5 +1,5 @@
 extern crate pom;
-use pom::{DataInput, Train};
+use pom::TextInput;
 use pom::parser::*;
 
 use std::str::FromStr;
@@ -85,8 +85,8 @@ fn main() {
             "IDs": [116, 943, 234, 38793]
         },
         "escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
-    }"#.knots();
+    }"#;
 
-	let mut input = DataInput::new(test.as_slice());
+	let mut input = TextInput::new(test);
 	println!("{:?}", json().parse(&mut input));
 }

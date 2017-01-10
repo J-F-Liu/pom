@@ -16,6 +16,7 @@ pub trait Input<T> where T: Copy {
 	fn segment(&self, start: usize, end: usize) -> Vec<T>;
 }
 
+/// Wrap &[u8] or &[char] as input to parser.
 pub struct DataInput<'a, T: 'a> {
 	pub data: &'a [T],
 	pub position: usize,
@@ -54,5 +55,45 @@ impl<'a, T: Copy> Input<T> for DataInput<'a, T> {
 
 	fn segment(&self, start: usize, end: usize) -> Vec<T> {
 		self.data[start..end].to_vec()
+	}
+}
+
+/// Wrap &str as input to parser.
+pub struct TextInput<'a> {
+	pub text: &'a str,
+	pub position: usize,
+}
+
+impl<'a> TextInput<'a> {
+	pub fn new(input: &'a str) -> TextInput<'a> {
+		TextInput {
+			text: input,
+			position: 0,
+		}
+	}
+}
+
+impl<'a> Input<char> for TextInput<'a> {
+	fn position(&self) -> usize {
+		self.position
+	}
+
+	fn current(&self) -> Option<char>
+	{
+		self.text[self.position..].chars().next()
+	}
+
+	fn advance(&mut self) {
+		if let Some(c) = self.text[self.position..].chars().next() {
+			self.position += c.len_utf8();
+		}
+	}
+
+	fn backward(&mut self, position: usize) {
+		self.position = position;
+	}
+
+	fn segment(&self, start: usize, end: usize) -> Vec<char> {
+		self.text[start..end].chars().collect()
 	}
 }
