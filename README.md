@@ -2,6 +2,8 @@
 
 PEG parser combinators created using operator overloading without macros.
 
+[![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom) 
+
 ## What is PEG?
 
 PEG stands for parsing expression grammar, is a type of analytic formal grammar, i.e. it describes a formal language in terms of a set of rules for recognizing strings in the language.
@@ -50,7 +52,7 @@ And the code is easier to debug than macros.
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
 |p.map(f)|Convert parser result to desired value.|
 |p.collect()|Collect all matched input symbols.|
-|p.discard()|Discard parser result.|
+|p.discard()|Discard parser output.|
 
 ## Example code
 ```rust
@@ -59,9 +61,9 @@ use pom::{Input};
 use pom::parser::*;
 
 let mut input = Input::new(b"abcde");
-let parser = term(b'a') + none_of(b"AB") - term(b'c') + seq(b"de");
+let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
 let output = parser.parse(&mut input);
-assert_eq!(output, Ok( ((b'a', b'b'), &b"de"[..]) ) );
+assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 ```
 
 ### Example JSON parser

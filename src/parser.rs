@@ -45,7 +45,7 @@ impl<I, O> Parser<I, O> {
 		})
 	}
 
-	/// Discard parser result.
+	/// Discard parser output.
 	pub fn discard(self) -> Parser<I, ()>
 		where I: 'static,
 			  O: 'static
@@ -505,9 +505,9 @@ fn byte_works() {
 	assert_eq!(output, Err(Error::Mismatch{message: "expect: 67, found: 99".to_string(), position: 2}));
 	assert_eq!(input.position, 0);
 
-	let parser = term(b'a') + none_of(b"AB") - term(b'c') + seq(b"de");
+	let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
 	let output = parser.parse(&mut input);
-	assert_eq!(output, Ok( ((b'a', b'b'), vec![b'd', b'e']) ) );
+	assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 
 	let parser = term(b'e') | term(b'd') | empty().map(|_| b'0');
 	let output = parser.parse(&mut input);
