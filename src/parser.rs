@@ -1,5 +1,5 @@
 use std::fmt::{Display, Debug};
-use std::ops::{Add, Sub, Mul, BitOr, Neg, Not};
+use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg, Not};
 use std::collections::range::RangeArgument;
 use super::{Result, Error, Input, Train};
 
@@ -434,7 +434,27 @@ impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 	{
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
-			let result = self.parse(input).and_then(|_| other.parse(input).map(|out2| out2));
+			let result = self.parse(input).and_then(|_| other.parse(input));
+			if result.is_err() {
+				input.backward(start);
+			}
+			result
+		})
+	}
+}
+
+/// Chain two passers where the second parser depends on the first's result.
+impl<I: Copy, O, U> Shr<Box<Fn(O) -> Parser<I, U>>> for Parser<I, O> {
+	type Output = Parser<I, U>;
+
+	fn shr(self, other: Box<Fn(O) -> Parser<I, U>>) -> Self::Output
+		where I: 'static,
+			  O: 'static,
+			  U: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position();
+			let result = self.parse(input).and_then(|out1| other(out1).parse(input));
 			if result.is_err() {
 				input.backward(start);
 			}
@@ -543,5 +563,13 @@ mod tests {
 		let parser = expr();
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok(Expr::Group(Box::new(Expr::Group(Box::new(Expr::Empty))))));
+	}
+
+	#[test]
+	fn chain_parser() {
+		let mut input = DataInput::new(b"5oooooooo");
+		let parser = one_of(b"0123456789").map(|c|c - b'0') >> Box::new(|n| take(n as usize) + term(b'o').repeat(0..));
+		let output = parser.parse(&mut input);
+		assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
 	}
 }

@@ -1,6 +1,6 @@
 [package]
 name = "pom"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
 homepage = "https://github.com/J-F-Liu/pom"
 documentation = "https://docs.rs/pom/"
