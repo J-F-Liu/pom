@@ -9,8 +9,8 @@ pub trait Input<T> where T: Copy {
 	/// Advance to next symbol.
 	fn advance(&mut self);
 
-	/// Backward to specified position.
-	fn backward(&mut self, position: usize);
+	/// Jump to specified position.
+	fn jump_to(&mut self, position: usize);
 
 	/// Get a segment from the input.
 	fn segment(&self, start: usize, end: usize) -> Vec<T>;
@@ -49,7 +49,7 @@ impl<'a, T: Copy> Input<T> for DataInput<'a, T> {
 		self.position += 1;
 	}
 
-	fn backward(&mut self, position: usize) {
+	fn jump_to(&mut self, position: usize) {
 		self.position = position;
 	}
 
@@ -89,7 +89,7 @@ impl<'a> Input<char> for TextInput<'a> {
 		}
 	}
 
-	fn backward(&mut self, position: usize) {
+	fn jump_to(&mut self, position: usize) {
 		self.position = position;
 	}
 

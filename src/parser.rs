@@ -87,7 +87,7 @@ impl<I, O> Parser<I, O> {
 			}
 			if let Some(&start) = range.start() {
 				if items.len() < start {
-					input.backward(start_pos);
+					input.jump_to(start_pos);
 					return Err(Error::Mismatch {
 						message: format!("expect repeat at least {} times, found {} times", start, items.len()),
 						position: start_pos,
@@ -153,7 +153,7 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 			index += 1;
 		};
 		if result.is_err() {
-			input.backward(start);
+			input.jump_to(start);
 		}
 		result
 	})
@@ -174,7 +174,7 @@ pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I,
 				match parser.parse(input) {
 					Ok(more_item) => items.push(more_item),
 					Err(error) => {
-						input.backward(start);
+						input.jump_to(start);
 						return Err(Error::Mismatch{
 							message: format!("expect item after separator, found: {:?}", error),
 							position: start,
@@ -324,7 +324,7 @@ pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
 			}
 		}
 		if symbols.len() < n {
-			input.backward(start);
+			input.jump_to(start);
 			Err(Error::Incomplete)
 		} else {
 			Ok(symbols)
@@ -347,7 +347,7 @@ pub fn skip<I>(n: usize) -> Parser<I, ()>
 			}
 		}
 		if count < n {
-			input.backward(start);
+			input.jump_to(start);
 			Err(Error::Incomplete)
 		} else {
 			Ok(())
@@ -396,7 +396,7 @@ impl<I: Copy, O, U> Add<Parser<I, U>> for Parser<I, O> {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|out2| (out1, out2)));
 			if result.is_err() {
-				input.backward(start);
+				input.jump_to(start);
 			}
 			result
 		})
@@ -416,7 +416,7 @@ impl<I: Copy, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|_| out1));
 			if result.is_err() {
-				input.backward(start);
+				input.jump_to(start);
 			}
 			result
 		})
@@ -436,7 +436,7 @@ impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 			let start = input.position();
 			let result = self.parse(input).and_then(|_| other.parse(input));
 			if result.is_err() {
-				input.backward(start);
+				input.jump_to(start);
 			}
 			result
 		})
@@ -456,7 +456,7 @@ impl<I: Copy, O, U> Shr<Box<Fn(O) -> Parser<I, U>>> for Parser<I, O> {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other(out1).parse(input));
 			if result.is_err() {
-				input.backward(start);
+				input.jump_to(start);
 			}
 			result
 		})
@@ -488,7 +488,7 @@ impl<I: Copy, O> Neg for Parser<I, O> {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input);
-			input.backward(start);
+			input.jump_to(start);
 			result.map(|_| true)
 		})
 	}
@@ -505,7 +505,7 @@ impl<I: Copy, O> Not for Parser<I, O> {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input);
-			input.backward(start);
+			input.jump_to(start);
 			match result {
 				Ok(_) => Err(Error::Mismatch{
 					message: "not predicate failed".to_string(),
