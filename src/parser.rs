@@ -82,7 +82,7 @@ impl<I, O> Parser<I, O> {
 			while let Ok(item) = self.parse(input) {
 				items.push(item);
 				if let Some(&end) = range.end() {
-					if items.len() >= end { break; }
+					if items.len() >= end - 1 { break; }
 				}
 			}
 			if let Some(&start) = range.start() {
