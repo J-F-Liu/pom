@@ -444,13 +444,14 @@ impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Chain two passers where the second parser depends on the first's result.
-impl<I: Copy, O, U> Shr<Box<Fn(O) -> Parser<I, U>>> for Parser<I, O> {
+impl<I: Copy, O, U, F: Fn(O) -> Parser<I, U>> Shr<F> for Parser<I, O> {
 	type Output = Parser<I, U>;
 
-	fn shr(self, other: Box<Fn(O) -> Parser<I, U>>) -> Self::Output
+	fn shr(self, other: F) -> Self::Output
 		where I: 'static,
 			  O: 'static,
-			  U: 'static
+			  U: 'static,
+			  F: 'static
 	{
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
@@ -568,7 +569,12 @@ mod tests {
 	#[test]
 	fn chain_parser() {
 		let mut input = DataInput::new(b"5oooooooo");
-		let parser = one_of(b"0123456789").map(|c|c - b'0') >> Box::new(|n| take(n as usize) + term(b'o').repeat(0..));
+		// let parser = one_of(b"0123456789").map(|c|c - b'0') >> |n| take(n as usize) + term(b'o').repeat(0..);
+		let parser = skip(1) * take(3) >> |v:Vec<u8>|{
+			take(5).map(move |u|{
+				(u, v.clone())
+			})
+		};
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
 	}
