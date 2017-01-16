@@ -160,3 +160,11 @@ You can run this example with the following command:
 ```
 cargo run --example json
 ```
+
+## Benchmark
+
+| Parser           | Time to parse the same JSON file |
+|------------------|----------------------------------|
+| pom: json_byte   | 3,962 ns/iter (+/- 258)          |
+| pom: json_char   | 4,194 ns/iter (+/- 87)           |
+| [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |

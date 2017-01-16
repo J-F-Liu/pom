@@ -69,6 +69,7 @@ pub fn json() -> Parser<u8, JsonValue> {
 	space() * value() - end()
 }
 
+#[allow(dead_code)]
 fn main() {
 	let test = br#"
 	{
