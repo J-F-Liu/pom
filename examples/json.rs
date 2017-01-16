@@ -66,7 +66,7 @@ fn value() -> Parser<u8, JsonValue> {
 }
 
 pub fn json() -> Parser<u8, JsonValue> {
-	space() * value() - eof()
+	space() * value() - end()
 }
 
 fn main() {

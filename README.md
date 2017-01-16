@@ -28,8 +28,8 @@ And the code is easier to debug than macros.
 |Basic Parsers|Description|
 | --- | --- |
 |empty()|Always success, consume no input.|
-|eof()  |Match end of file.|
-|term(t)|Match terminal symbol *t*.|
+|end()  |Match end of input.|
+|term(t)|Match a single terminal symbol *t*.|
 |seq(s) |Match sequence of symbols.|
 |list(p,s) |Match list of *p*, separated by *s*.|
 |one_of(set) |Sucess when current input symbol is one of the set.|
@@ -49,7 +49,7 @@ And the code is easier to debug than macros.
 | p >> q | Parse p and get result P, then parse and return result of q(P). |
 | -p | Success when p success, doen't consume input. |
 | !p | Success when p fail, doen't consume input. |
-|p.opt()|Make parser optional.|
+|p.opt()|Make parser optional. Returns an `Option`.|
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
 |p.map(f)|Convert parser result to desired value.|
 |p.collect()|Collect all matched input symbols.|
@@ -132,7 +132,7 @@ fn value() -> Parser<u8, JsonValue> {
 }
 
 pub fn json() -> Parser<u8, JsonValue> {
-	space() * value() - eof()
+	space() * value() - end()
 }
 
 fn main() {

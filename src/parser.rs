@@ -367,14 +367,14 @@ pub fn call<I, O, F>(parser_factory: F) -> Parser<I, O>
 	})
 }
 
-/// Success when end of file is reached.
-pub fn eof<I>() -> Parser<I, ()>
+/// Success when end of input is reached.
+pub fn end<I>() -> Parser<I, ()>
 	where I: Copy + Display + 'static
 {
 	Parser::new(|input: &mut Input<I>| {
 		if let Some(s) = input.current() {
 			Err(Error::Mismatch{
-				message: format!("expect end of file, found: {}", s),
+				message: format!("expect end of input, found: {}", s),
 				position: input.position(),
 			})
 		} else {
