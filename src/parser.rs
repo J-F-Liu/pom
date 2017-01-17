@@ -1,6 +1,7 @@
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg, Not};
 use std::collections::range::RangeArgument;
+use std::collections::Bound::{Excluded, Included, Unbounded};
 use super::{Result, Error, Input, Train};
 
 /// Parser combinator.
@@ -81,11 +82,13 @@ impl<I, O> Parser<I, O> {
 			let mut items = vec![];
 			while let Ok(item) = self.parse(input) {
 				items.push(item);
-				if let Some(&end) = range.end() {
-					if items.len() >= end - 1 { break; }
+				match range.end() {
+					Included(&end) => if items.len() >= end { break; },
+					Excluded(&end) => if items.len() >= end - 1 { break; },
+					Unbounded => continue,
 				}
 			}
-			if let Some(&start) = range.start() {
+			if let Included(&start) = range.start() {
 				if items.len() < start {
 					input.jump_to(start_pos);
 					return Err(Error::Mismatch {
@@ -285,21 +288,27 @@ pub fn range<I, R>(set: R) -> Parser<I, I>
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			if let Some(&start) = set.start() {
-				if s < start {
-					return Err(Error::Mismatch {
-						message: format!("expect range: {:?}, found: {}", set, s),
-						position: input.position(),
-					});
-				}
+			let meet_start = match set.start() {
+				Included(&start) => s >= start,
+				Excluded(&start) => s > start,
+				Unbounded => true,
+			};
+			if !meet_start {
+				return Err(Error::Mismatch {
+					message: format!("expect range: {:?}, found: {}", set, s),
+					position: input.position(),
+				});
 			}
-			if let Some(&end) = set.end() {
-				if s >= end {
-					return Err(Error::Mismatch {
-						message: format!("expect range: {:?}, found: {}", set, s),
-						position: input.position(),
-					});
-				}
+			let meet_end = match set.end() {
+				Included(&end) => s <= end,
+				Excluded(&end) => s < end,
+				Unbounded => true,
+			};
+			if !meet_end {
+				return Err(Error::Mismatch {
+					message: format!("expect range: {:?}, found: {}", set, s),
+					position: input.position(),
+				});
 			}
 			input.advance();
 			return Ok(s);
