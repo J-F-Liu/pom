@@ -51,7 +51,7 @@ fn object() -> Parser<char, HashMap<String, JsonValue>> {
 	let member = string() - space() - term(':') - space() + call(value);
 	let members = list(member, term(',') * space());
 	let obj = term('{') * space() * members.opt() - term('}');
-	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<String,JsonValue>>())
+	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 
 fn value() -> Parser<char, JsonValue> {

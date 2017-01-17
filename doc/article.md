@@ -10,9 +10,9 @@ After I've learned C/C++ and C#, I found that choosing a new programming languag
 
 I like the syntax provided by C#, but hate the huge .NET runtime. Dependency on CLR makes distribution of an application written in C# very hard. Compiling to native code is always what I longed for a programming language. In year 2003 I thought a compiler can get rid of garbage collector by generating free memory instructions in appropriate locations in the target program. But I didn't go deep into the design of the details of this mechanism, I decided to firstly write a working compiler, then improve the design of the language and implementation of the compiler bit by bit.
 
-The first stage of compilation is parsing. I tried some parser generators, but not satisfied with the result. Then I dig into the parsing theory, followed several books, implemented DFA, NFA, convert NFA to DFA, LL(1), LR, LALR algorithms, then wrote a parser to parse BNF, EBNF or TBNF grammar file, and generate parser code corresponding to the grammar.
+The first stage of compilation is parsing. I tried some parser generators, but not satisfied with the result. Then I dig into the parsing theory, followed several books, implemented DFA, NFA, NFA to DFA conversion, LL(1), LR, LALR algorithms, then wrote a parser to parse BNF, EBNF or TBNF grammar file, and generate parser code corresponding to the grammar.
 
-The syntax/semantics analysis and code generation part of a compiler is more difficult. I even tried to define a intermediate assembly language, at that time I didn't know LLVM. My effort of writing a compiler cased for years, then Rust was born.
+The syntax/semantics analysis and code generation parts of a compiler are more difficult. I even tried to define a intermediate assembly language, at that time I didn't know LLVM. My effort of writing a compiler ceased for years, then Rust was born.
 
 At first glance, the Rust's syntax is a bit strange, why use `fn` instaed of `def`, why use `let mut` instead of `var`,  I was not attracted by it. After read a publication on O'Reilly  [*Why Rust?*](http://www.oreilly.com/programming/free/files/why-rust.pdf) I suddenly realized that this is language I'm trying to build, when you actually start using Rust you'll find that `fn` and `let mut` fits Rust's logic well. For me, **Rust is once a dream now a reality.**
 
@@ -44,7 +44,7 @@ Unlike CFGs, PEGs cannot be ambiguous; if a string parses, it has exactly one va
 
 ## What is parser combinator?
 
-When I heard Parsec in the Haskell world, I got the concept of parser combinator for my first time.
+When I heard of Parsec in the Haskell world, I got the concept of parser combinator for my first time.
 
 A *parser* is a function which takes a *string* (a series of *symbols*) as input, and returns matching result as *output*.
 
@@ -74,7 +74,7 @@ I thought deeply about how to implement parser combinator using language constru
    }
    ...
    // To create a parser for integer
-   let parser = Concatenate(optional(one_of("+-")), one_or_more(one_of("0123456789")));
+   let parser = concatenate(optional(one_of("+-")), one_or_more(one_of("0123456789")));
    ```
 
    *Pros*: Less implementation code.
@@ -85,26 +85,26 @@ I thought deeply about how to implement parser combinator using language constru
 
    ```rust
    pub struct Parser<I, O> {
-   	method: Box<Fn(&mut Input<I>) -> Result<O>>,
+       method: Box<Fn(&mut Input<I>) -> Result<O>>,
    }
 
    impl<I, O> Parser<I, O> {
-   	/// Create new parser.
-   	pub fn new<P>(parse: P) -> Parser<I, O>
-   		where P: Fn(&mut Input<I>) -> Result<O> + 'static
-   	{
-   		Parser { method: Box::new(parse) }
-   	}
+       /// Create new parser.
+       pub fn new<P>(parse: P) -> Parser<I, O>
+           where P: Fn(&mut Input<I>) -> Result<O> + 'static
+       {
+           Parser { method: Box::new(parse) }
+       }
 
-   	/// Apply the parser to parse input.
-   	pub fn parse(&self, input: &mut Input<I>) -> Result<O> {
-   		(self.method)(input)
-   	}
+       /// Apply the parser to parse input.
+       pub fn parse(&self, input: &mut Input<I>) -> Result<O> {
+           (self.method)(input)
+       }
        ...
    }
 
    pub fn empty<I>() -> Parser<I, ()> {
-   	Parser::new(|_: &mut Input<I>| Ok(()))
+       Parser::new(|_: &mut Input<I>| Ok(()))
    }
 
    pub fn term<I>(t: I) -> Parser<I, I> {
@@ -112,23 +112,23 @@ I thought deeply about how to implement parser combinator using language constru
    }
    ...
    impl<I: Copy, O, U> Add<Parser<I, U>> for Parser<I, O> {
-   	type Output = Parser<I, (O, U)>;
+       type Output = Parser<I, (O, U)>;
 
-   	fn add(self, other: Parser<I, U>) -> Self::Output
-   		where I: 'static,
-   			  O: 'static,
-   			  U: 'static
-   	{
-   		Parser::new(move |input: &mut Input<I>| {
-   			let start = input.position();
-   			let result = self.parse(input)
+       fn add(self, other: Parser<I, U>) -> Self::Output
+           where I: 'static,
+                 O: 'static,
+                 U: 'static
+       {
+           Parser::new(move |input: &mut Input<I>| {
+               let start = input.position();
+               let result = self.parse(input)
                    .and_then(|out1| other.parse(input).map(|out2| (out1, out2)));
-   			if result.is_err() {
-   				input.jump_to(start);
-   			}
-   			result
-   		})
-   	}
+               if result.is_err() {
+                   input.jump_to(start);
+               }
+               result
+           })
+       }
    }
    // To create a parser for integer
    let parser = one_of("+-").opt() + one_of("0123456789").repeat(1..);
@@ -375,7 +375,7 @@ There are three ways to create a parser:
 
 ## Example JSON Parser
 
-Let's create a JSON parser to explain the parser combinators in more detail. Syntax diagrams can be found on [json.org](http://www.json.org/).
+Let me explain the parser combinators in more detail by creating a JSON parser. Syntax diagrams can be found on [json.org](http://www.json.org/).
 
 ```rust
 extern crate pom;
@@ -389,12 +389,12 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue {
-	Null,
-	Bool(bool),
-	Str(String),
-	Num(f64),
-	Array(Vec<JsonValue>),
-	Object(HashMap<String,JsonValue>)
+    Null,
+    Bool(bool),
+    Str(String),
+    Num(f64),
+    Array(Vec<JsonValue>),
+    Object(HashMap<String,JsonValue>)
 }
 ```
 
@@ -402,7 +402,7 @@ Import predefined parser combinators and utility functions, define the JSON pars
 
 ```rust
 fn space() -> Parser<u8, ()> {
-	one_of(b" \t\r\n").repeat(0..).discard()
+    one_of(b" \t\r\n").repeat(0..).discard()
 }
 ```
 
@@ -410,27 +410,27 @@ Match zero or more space characters, the output is ignored.
 
 ```rust
 fn number() -> Parser<u8, f64> {
-	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | term(b'0');
-	let frac = term(b'.') + one_of(b"0123456789").repeat(1..);
-	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
-	let number = term(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().map(|v|String::from_utf8(v).unwrap()).map(|s|f64::from_str(&s).unwrap())
+    let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | term(b'0');
+    let frac = term(b'.') + one_of(b"0123456789").repeat(1..);
+    let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
+    let number = term(b'-').opt() + integer + frac.opt() + exp.opt();
+    number.collect().map(|v|String::from_utf8(v).unwrap()).map(|s|f64::from_str(&s).unwrap())
 }
 ```
 
-Don't care each output of integer, frac or exp, collect() method get all the match character as a Vec<u8>, then it is converted to a string, then further converted to a float number.
+Don't care each output of integer, frac or exp, collect() method get all the match character as a Vec<u8>, then it is converted to a string, and further converted to a float number.
 
 ```rust
 fn string() -> Parser<u8, String> {
-	let special_char = term(b'\\') | term(b'/') | term(b'"')
-		| term(b'b').map(|_|b'\x08') | term(b'f').map(|_|b'\x0C')
-		| term(b'n').map(|_|b'\n') | term(b'r').map(|_|b'\r') | term(b't').map(|_|b'\t');
-	let escape_sequence = term(b'\\') * special_char;
-	let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).map(|bytes|String::from_utf8(bytes).unwrap());
-	let utf16_char = term(b'\\') * term(b'u') * is_a(hex_digit).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16).unwrap());
-	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
-	let string = term(b'"') * (char_string | utf16_string).repeat(0..) - term(b'"');
-	string.map(|strings|strings.concat())
+    let special_char = term(b'\\') | term(b'/') | term(b'"')
+        | term(b'b').map(|_|b'\x08') | term(b'f').map(|_|b'\x0C')
+        | term(b'n').map(|_|b'\n') | term(b'r').map(|_|b'\r') | term(b't').map(|_|b'\t');
+    let escape_sequence = term(b'\\') * special_char;
+    let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).map(|bytes|String::from_utf8(bytes).unwrap());
+    let utf16_char = term(b'\\') * term(b'u') * is_a(hex_digit).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16).unwrap());
+    let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
+    let string = term(b'"') * (char_string | utf16_string).repeat(0..) - term(b'"');
+    string.map(|strings|strings.concat())
 }
 ```
 
@@ -438,27 +438,27 @@ The bulk of code is written to parse escape sequences. According to [Wikipedia](
 
 ```rust
 fn array() -> Parser<u8, Vec<JsonValue>> {
-	let elems = list(call(value), term(b',') * space());
-	let arr = term(b'[') * space() * elems.opt() - term(b']');
-	arr.map(|elems|elems.unwrap_or(vec![]))
+    let elems = list(call(value), term(b',') * space());
+    let arr = term(b'[') * space() * elems.opt() - term(b']');
+    arr.map(|elems|elems.unwrap_or(vec![]))
 }
 
 fn object() -> Parser<u8, HashMap<String, JsonValue>> {
-	let member = string() - space() - term(b':') - space() + call(value);
-	let members = list(member, term(b',') * space());
-	let obj = term(b'{') * space() * members.opt() - term(b'}');
-	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
+    let member = string() - space() - term(b':') - space() + call(value);
+    let members = list(member, term(b',') * space());
+    let obj = term(b'{') * space() * members.opt() - term(b'}');
+    obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 
 fn value() -> Parser<u8, JsonValue> {
-	( seq(b"null").map(|_|JsonValue::Null)
-	| seq(b"true").map(|_|JsonValue::Bool(true))
-	| seq(b"false").map(|_|JsonValue::Bool(false))
-	| number().map(|num|JsonValue::Num(num))
-	| string().map(|text|JsonValue::Str(text))
-	| array().map(|arr|JsonValue::Array(arr))
-	| object().map(|obj|JsonValue::Object(obj))
-	) - space()
+    ( seq(b"null").map(|_|JsonValue::Null)
+    | seq(b"true").map(|_|JsonValue::Bool(true))
+    | seq(b"false").map(|_|JsonValue::Bool(false))
+    | number().map(|num|JsonValue::Num(num))
+    | string().map(|text|JsonValue::Str(text))
+    | array().map(|arr|JsonValue::Array(arr))
+    | object().map(|obj|JsonValue::Object(obj))
+    ) - space()
 }
 ```
 
@@ -466,7 +466,7 @@ array and object are very straight to parse, notice `call(value)`, at the first 
 
 ```rust
 pub fn json() -> Parser<u8, JsonValue> {
-	space() * value() - end()
+    space() * value() - end()
 }
 ```
 
@@ -474,8 +474,8 @@ The final JSON parser, declared as public. According to [RFC 7159](https://tools
 
 ```rust
 fn main() {
-	let test = br#"
-	{
+    let test = br#"
+    {
         "Image": {
             "Width":  800,
             "Height": 600,
@@ -491,8 +491,8 @@ fn main() {
         "escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
     }"#;
 
-	let mut input = DataInput::new(test);
-	println!("{:?}", json().parse(&mut input));
+    let mut input = DataInput::new(test);
+    println!("{:?}", json().parse(&mut input));
 }
 ```
 
@@ -506,6 +506,8 @@ cargo run --example json
 Ok(Object({"Image": Object({"Width": Num(800), "Title": Str("View from 15th Floor"), "Height": Num(600), "Animated": Bool(false), "IDs": Array([Num(116), Num(943), Num(234), Num(38793)]), "Thumbnail": Object({"Height
 ": Num(125), "Url": Str("http://www.example.com/image/481989943"), "Width": Num(100)})}), "escaped characters": Str("→😀\"\t𝄞")}))
 ```
+
+The above parser assumes that the input bytes is UTF-8 encoded text; otherwise, you can use the [char version of JSON parser](https://github.com/J-F-Liu/pom/blob/master/examples/json_char.rs).
 
 `p >> q` is not covered in the JSON example. It is used to pass the output of `p` into parser creation of `p`.
 

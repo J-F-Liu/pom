@@ -117,7 +117,7 @@ fn object() -> Parser<u8, HashMap<String, JsonValue>> {
 	let member = string() - space() - term(b':') - space() + call(value);
 	let members = list(member, term(b',') * space());
 	let obj = term(b'{') * space() * members.opt() - term(b'}');
-	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<String,JsonValue>>())
+	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 
 fn value() -> Parser<u8, JsonValue> {
