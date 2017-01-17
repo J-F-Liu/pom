@@ -1,8 +1,8 @@
 # pom
 
-PEG parser combinators created using operator overloading without macros.
+[![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom) [![Build Status](https://travis-ci.org/J-F-Liu/pom.png)](https://travis-ci.org/J-F-Liu/pom)
 
-[![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom) 
+PEG parser combinators created using operator overloading without macros.
 
 ## What is PEG?
 
