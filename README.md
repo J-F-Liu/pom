@@ -29,7 +29,7 @@ And the code is easier to debug than macros.
 | --- | --- |
 |empty()|Always success, consume no input.|
 |end()  |Match end of input.|
-|term(t)|Match a single terminal symbol *t*.|
+|sym(t)|Match a single terminal symbol *t*.|
 |seq(s) |Match sequence of symbols.|
 |list(p,s) |Match list of *p*, separated by *s*.|
 |one_of(set) |Sucess when current input symbol is one of the set.|
@@ -62,7 +62,7 @@ use pom::{Input};
 use pom::parser::*;
 
 let mut input = Input::new(b"abcde");
-let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
+let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
 let output = parser.parse(&mut input);
 assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 ```
@@ -91,32 +91,32 @@ fn space() -> Parser<u8, ()> {
 }
 
 fn number() -> Parser<u8, f64> {
-	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | term(b'0');
-	let frac = term(b'.') + one_of(b"0123456789").repeat(1..);
+	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | sym(b'0');
+	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
-	let number = term(b'-').opt() + integer + frac.opt() + exp.opt();
+	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
 	number.collect().map(|v|String::from_utf8(v).unwrap()).map(|s|f64::from_str(&s).unwrap())
 }
 
 fn string() -> Parser<u8, String> {
-	let special_char = term(b'\\') | term(b'/') | term(b'"')
-		| term(b'b').map(|_|b'\x08') | term(b'f').map(|_|b'\x0C')
-		| term(b'n').map(|_|b'\n') | term(b'r').map(|_|b'\r') | term(b't').map(|_|b'\t');
-	let escape_sequence = term(b'\\') * special_char;
-	let string = term(b'"') * (none_of(b"\\\"") | escape_sequence).repeat(0..) - term(b'"');
+	let special_char = sym(b'\\') | sym(b'/') | sym(b'"')
+		| sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
+		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
+	let escape_sequence = sym(b'\\') * special_char;
+	let string = sym(b'"') * (none_of(b"\\\"") | escape_sequence).repeat(0..) - sym(b'"');
 	string.map(|v|String::from_utf8(v).unwrap())
 }
 
 fn array() -> Parser<u8, Vec<JsonValue>> {
-	let elems = list(call(value), term(b',') * space());
-	let arr = term(b'[') * space() * elems.opt() - term(b']');
+	let elems = list(call(value), sym(b',') * space());
+	let arr = sym(b'[') * space() * elems.opt() - sym(b']');
 	arr.map(|elems|elems.unwrap_or(vec![]))
 }
 
 fn object() -> Parser<u8, HashMap<String, JsonValue>> {
-	let member = string() - space() - term(b':') - space() + call(value);
-	let members = list(member, term(b',') * space());
-	let obj = term(b'{') * space() * members.opt() - term(b'}');
+	let member = string() - space() - sym(b':') - space() + call(value);
+	let members = list(member, sym(b',') * space());
+	let obj = sym(b'{') * space() * members.opt() - sym(b'}');
 	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 

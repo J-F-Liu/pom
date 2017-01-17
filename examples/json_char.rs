@@ -22,35 +22,35 @@ fn space() -> Parser<char, ()> {
 }
 
 fn number() -> Parser<char, f64> {
-	let integer = one_of("123456789") - one_of("0123456789").repeat(0..) | term('0');
-	let frac = term('.') + one_of("0123456789").repeat(1..);
+	let integer = one_of("123456789") - one_of("0123456789").repeat(0..) | sym('0');
+	let frac = sym('.') + one_of("0123456789").repeat(1..);
 	let exp = one_of("eE") + one_of("+-").opt() + one_of("0123456789").repeat(1..);
-	let number = term('-').opt() + integer + frac.opt() + exp.opt();
+	let number = sym('-').opt() + integer + frac.opt() + exp.opt();
 	number.collect().map(|v|String::from_iter(v)).map(|s|f64::from_str(&s).unwrap())
 }
 
 fn string() -> Parser<char, String> {
-	let special_char = term('\\') | term('/') | term('"')
-		| term('b').map(|_|'\x08') | term('f').map(|_|'\x0C')
-		| term('n').map(|_|'\n') | term('r').map(|_|'\r') | term('t').map(|_|'\t');
-	let escape_sequence = term('\\') * special_char;
+	let special_char = sym('\\') | sym('/') | sym('"')
+		| sym('b').map(|_|'\x08') | sym('f').map(|_|'\x0C')
+		| sym('n').map(|_|'\n') | sym('r').map(|_|'\r') | sym('t').map(|_|'\t');
+	let escape_sequence = sym('\\') * special_char;
 	let char_string = (none_of("\\\"") | escape_sequence).repeat(1..).map(|chars|String::from_iter(chars));
-	let utf16_char = term('\\') * term('u') * is_a(|c:char|c.is_digit(16)).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_iter(digits), 16).unwrap());
+	let utf16_char = sym('\\') * sym('u') * is_a(|c:char|c.is_digit(16)).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_iter(digits), 16).unwrap());
 	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
-	let string = term('"') * (char_string | utf16_string).repeat(0..) - term('"');
+	let string = sym('"') * (char_string | utf16_string).repeat(0..) - sym('"');
 	string.map(|strings|strings.concat())
 }
 
 fn array() -> Parser<char, Vec<JsonValue>> {
-	let elems = list(call(value), term(',') * space());
-	let arr = term('[') * space() * elems.opt() - term(']');
+	let elems = list(call(value), sym(',') * space());
+	let arr = sym('[') * space() * elems.opt() - sym(']');
 	arr.map(|elems|elems.unwrap_or(vec![]))
 }
 
 fn object() -> Parser<char, HashMap<String, JsonValue>> {
-	let member = string() - space() - term(':') - space() + call(value);
-	let members = list(member, term(',') * space());
-	let obj = term('{') * space() * members.opt() - term('}');
+	let member = string() - space() - sym(':') - space() + call(value);
+	let members = list(member, sym(',') * space());
+	let obj = sym('{') * space() * members.opt() - sym('}');
 	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 

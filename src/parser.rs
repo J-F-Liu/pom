@@ -105,7 +105,7 @@ pub fn empty<I>() -> Parser<I, ()> {
 }
 
 /// Sucess when current input symbol equals t.
-pub fn term<I>(t: I) -> Parser<I, I>
+pub fn sym<I>(t: I) -> Parser<I, I>
 	where I: Copy + PartialEq + Display + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
@@ -526,16 +526,16 @@ mod tests {
 	#[test]
 	fn byte_works() {
 		let mut input = DataInput::new(b"abcde");
-		let parser = term(b'a') + one_of(b"ab") - term(b'C');
+		let parser = sym(b'a') + one_of(b"ab") - sym(b'C');
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Err(Error::Mismatch{message: "expect: 67, found: 99".to_string(), position: 2}));
 		assert_eq!(input.position(), 0);
 
-		let parser = term(b'a') * none_of(b"AB") - term(b'c') + seq(b"de");
+		let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 
-		let parser = term(b'e') | term(b'd') | empty().map(|_| b'0');
+		let parser = sym(b'e') | sym(b'd') | empty().map(|_| b'0');
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok(b'0'));
 	}
@@ -543,8 +543,8 @@ mod tests {
 	#[test]
 	fn char_works() {
 		let mut input = TextInput::new("abcd");
-		let parser = seq("ab") + term('c') |
-					term('d').map(|_| (vec![], '0'));
+		let parser = seq("ab") + sym('c') |
+					sym('d').map(|_| (vec![], '0'));
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok((vec!['a', 'b'], 'c')));
 	}
@@ -557,7 +557,7 @@ mod tests {
 			Group(Box<Expr>)
 		}
 		fn expr() -> Parser<u8, Expr> {
-			(term(b'(') + call(expr) - term(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
+			(sym(b'(') + call(expr) - sym(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
 			| empty().map(|_|Expr::Empty)
 		}
 		let mut input = DataInput::new(b"(())");
@@ -569,7 +569,7 @@ mod tests {
 	#[test]
 	fn chain_parser() {
 		let mut input = DataInput::new(b"5oooooooo");
-		// let parser = one_of(b"0123456789").map(|c|c - b'0') >> |n| take(n as usize) + term(b'o').repeat(0..);
+		// let parser = one_of(b"0123456789").map(|c|c - b'0') >> |n| take(n as usize) + sym(b'o').repeat(0..);
 		let parser = skip(1) * take(3) >> |v:Vec<u8>|{
 			take(5).map(move |u|{
 				(u, v.clone())

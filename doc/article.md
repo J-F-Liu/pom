@@ -317,7 +317,7 @@ According to above comparison, parser as struct is the best approach. At first I
 | -------------- | ---------------------------------------- |
 | empty()        | Always success, consume no input.        |
 | end()          | Match end of input.                      |
-| term(t)        | Match a single terminal symbol *t*.      |
+| sym(t)        | Match a single terminal symbol *t*.      |
 | seq(s)         | Match sequence of symbols.               |
 | list(p,s)      | Match list of *p*, separated by *s*.     |
 | one_of(set)    | Sucess when current input symbol is one of the set. |
@@ -362,7 +362,7 @@ There are three ways to create a parser:
 
    ```rust
    let integer = || one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
-   let pair = term(b'(') * integer() - term(b',') + integer() - term(b')');
+   let pair = sym(b'(') * integer() - sym(b',') + integer() - sym(b')');
    ```
 
 3. As a function, provides a high level construct.
@@ -410,10 +410,10 @@ Match zero or more space characters, the output is ignored.
 
 ```rust
 fn number() -> Parser<u8, f64> {
-    let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | term(b'0');
-    let frac = term(b'.') + one_of(b"0123456789").repeat(1..);
+    let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | sym(b'0');
+    let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
     let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
-    let number = term(b'-').opt() + integer + frac.opt() + exp.opt();
+    let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
     number.collect().map(|v|String::from_utf8(v).unwrap()).map(|s|f64::from_str(&s).unwrap())
 }
 ```
@@ -422,14 +422,14 @@ Don't care each output of integer, frac or exp, collect() method get all the mat
 
 ```rust
 fn string() -> Parser<u8, String> {
-    let special_char = term(b'\\') | term(b'/') | term(b'"')
-        | term(b'b').map(|_|b'\x08') | term(b'f').map(|_|b'\x0C')
-        | term(b'n').map(|_|b'\n') | term(b'r').map(|_|b'\r') | term(b't').map(|_|b'\t');
-    let escape_sequence = term(b'\\') * special_char;
+    let special_char = sym(b'\\') | sym(b'/') | sym(b'"')
+        | sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
+        | sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
+    let escape_sequence = sym(b'\\') * special_char;
     let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).map(|bytes|String::from_utf8(bytes).unwrap());
-    let utf16_char = term(b'\\') * term(b'u') * is_a(hex_digit).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16).unwrap());
+    let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4..5).map(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16).unwrap());
     let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
-    let string = term(b'"') * (char_string | utf16_string).repeat(0..) - term(b'"');
+    let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
     string.map(|strings|strings.concat())
 }
 ```
@@ -438,15 +438,15 @@ The bulk of code is written to parse escape sequences. According to [Wikipedia](
 
 ```rust
 fn array() -> Parser<u8, Vec<JsonValue>> {
-    let elems = list(call(value), term(b',') * space());
-    let arr = term(b'[') * space() * elems.opt() - term(b']');
+    let elems = list(call(value), sym(b',') * space());
+    let arr = sym(b'[') * space() * elems.opt() - sym(b']');
     arr.map(|elems|elems.unwrap_or(vec![]))
 }
 
 fn object() -> Parser<u8, HashMap<String, JsonValue>> {
-    let member = string() - space() - term(b':') - space() + call(value);
-    let members = list(member, term(b',') * space());
-    let obj = term(b'{') * space() * members.opt() - term(b'}');
+    let member = string() - space() - sym(b':') - space() + call(value);
+    let members = list(member, sym(b',') * space());
+    let obj = sym(b'{') * space() * members.opt() - sym(b'}');
     obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
 }
 
@@ -514,7 +514,7 @@ The above parser assumes that the input bytes is UTF-8 encoded text; otherwise, 
 ```rust
 let mut input = DataInput::new(b"5oooooooo");
 let parser = one_of(b"0123456789").map(|c|c - b'0') >> |n| {
-    take(n as usize) + term(b'o').repeat(0..)
+    take(n as usize) + sym(b'o').repeat(0..)
 };
 let output = parser.parse(&mut input);
 assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
