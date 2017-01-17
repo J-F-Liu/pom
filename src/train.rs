@@ -3,17 +3,28 @@
 /// so that both b'[u8] literal' and "string literal" can be accepted.
 pub trait Train<K> {
 	fn knots(&self) -> Vec<K>;
+	fn to_str(&self) -> &str;
 }
 
 impl Train<char> for str {
 	fn knots(&self) -> Vec<char> {
 		self.chars().collect()
 	}
+
+	fn to_str(&self) -> &str {
+		self
+	}
 }
+
+use std::str;
 
 impl Train<u8> for [u8] {
 	fn knots(&self) -> Vec<u8> {
 		self.to_vec()
+	}
+
+	fn to_str(&self) -> &str {
+		str::from_utf8(self).unwrap_or("<byte array>")
 	}
 }
 
@@ -23,6 +34,10 @@ macro_rules! impl_train_for_array
 		impl Train<u8> for [u8; $n] {
 			fn knots(&self) -> Vec<u8> {
 				self.to_vec()
+			}
+
+			fn to_str(&self) -> &str {
+				str::from_utf8(self).unwrap_or("<byte array>")
 			}
 		}
 	};

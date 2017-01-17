@@ -126,12 +126,12 @@ pub fn sym<I>(t: I) -> Parser<I, I>
 }
 
 /// Sucess when sequence of symbols match current input.
-pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
+pub fn seq<I, T>(train: &'static T) -> Parser<I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
 		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
-		let tag = tag.knots();
+		let tag = train.knots();
 		let start = input.position();
 		let mut index = 0;
 		let result = loop {
@@ -143,7 +143,7 @@ pub fn seq<I, T>(tag: &'static T) -> Parser<I, Vec<I>>
 					input.advance();
 				} else {
 					break Err(Error::Mismatch {
-						message: format!("seq expect: {}, found: {}", tag[index], s),
+						message: format!("seq {} expect: {}, found: {}", train.to_str(), tag[index], s),
 						position: input.position(),
 					});
 				}
@@ -188,19 +188,19 @@ pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I,
 }
 
 /// Sucess when current input symbol is one of the set.
-pub fn one_of<I, T>(set: &'static T) -> Parser<I, I>
+pub fn one_of<I, T>(train: &'static T) -> Parser<I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			let set = set.knots();
+			let set = train.knots();
 			if set.contains(&s) {
 				input.advance();
 				Ok(s)
 			} else {
 				Err(Error::Mismatch {
-					message: format!("expect one of: {:?}, found: {}", set, s),
+					message: format!("expect one of: {}, found: {}", train.to_str(), s),
 					position: input.position(),
 				})
 			}
@@ -211,16 +211,16 @@ pub fn one_of<I, T>(set: &'static T) -> Parser<I, I>
 }
 
 /// Sucess when current input symbol is none of the set.
-pub fn none_of<I, T>(set: &'static T) -> Parser<I, I>
+pub fn none_of<I, T>(train: &'static T) -> Parser<I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			let set = set.knots();
+			let set = train.knots();
 			if set.contains(&s) {
 				Err(Error::Mismatch {
-					message: format!("expect none of: {:?}, found: {}", set, s),
+					message: format!("expect none of: {}, found: {}", train.to_str(), s),
 					position: input.position(),
 				})
 			} else {
