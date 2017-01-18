@@ -6,29 +6,43 @@ This article introduces [pom](https://github.com/J-F-Liu/pom), a PEG parser comb
 
 ![Rust](rust.png)
 
-After I've learned C/C++ and C#, I found that choosing a new programming language can greatly affect a programmer's productivity. On one hand I keep sorting out new languages, there are hundreds of them, I examine and choose what I like best, my favorites are C#, Euphoria, Python, Haskell, Lua, Ruby and Rust. On the other hand I try to design a new language and implement a compiler by myself.
+After I've learned C/C++ and C#, I found that choosing a new programming language can greatly affect a programmer's productivity.
+On one hand I keep sorting out new languages, there are hundreds of them, I examine and choose what I like best, my favorites are C#, Ruby, TypeScript and Rust.
+On the other hand I try to design a new language and implement a compiler by myself.
 
-I like the syntax provided by C#, but hate the huge .NET runtime. Dependency on CLR makes distribution of an application written in C# very hard. Compiling to native code is always what I longed for a programming language. In year 2003 I thought a compiler can get rid of garbage collector by generating free memory instructions in appropriate locations in the target program. But I didn't go deep into the design of the details of this mechanism, I decided to firstly write a working compiler, then improve the design of the language and implementation of the compiler bit by bit.
+I like the syntax provided by C#, but hate the huge .NET runtime. Dependency on CLR makes distribution of an application written in C# very hard. Compiling to native code is always what I longed for a programming language.
+In year 2003 I thought a compiler can get rid of garbage collector by generating free memory instructions in appropriate locations in the target program.
+But I didn't go deep into the design of the details of this mechanism, I decided to firstly write a working compiler, then improve the design of the language and implementation of the compiler bit by bit.
 
-The first stage of compilation is parsing. I tried some parser generators, but not satisfied with the result. Then I dig into the parsing theory, followed several books, implemented DFA, NFA, NFA to DFA conversion, LL(1), LR, LALR algorithms, then wrote a parser to parse BNF, EBNF or TBNF grammar file, and generate parser code corresponding to the grammar.
+The first stage of compilation is parsing. I tried some parser generators, but not satisfied with the result.
+Then I dig into the parsing theory, followed several books, implemented DFA, NFA, NFA to DFA conversion, LL(1), LR, LALR algorithms,
+then wrote a parser to parse BNF, EBNF or TBNF grammar file, and generate parser code corresponding to the grammar.
 
-The syntax/semantics analysis and code generation parts of a compiler are more difficult. I even tried to define a intermediate assembly language, at that time I didn't know LLVM. My effort of writing a compiler ceased for years, then Rust was born.
+The syntax/semantics analysis and code generation parts of a compiler are more difficult.
+I even tried to define a intermediate assembly language, at that time I didn't know LLVM. My effort of writing a compiler ceased for years, then Rust was born.
 
-At first glance, the Rust's syntax is a bit strange, why use `fn` instaed of `def`, why use `let mut` instead of `var`,  I was not attracted by it. After read a publication on O'Reilly  [*Why Rust?*](http://www.oreilly.com/programming/free/files/why-rust.pdf) I suddenly realized that this is language I'm trying to build, when you actually start using Rust you'll find that `fn` and `let mut` fits Rust's logic well. For me, **Rust is once a dream now a reality.**
+At first glance, the Rust's syntax is a bit strange, why use `fn` instaed of `def`, why use `let mut` instead of `var`, I was not attracted by it.
+After read a publication on O'Reilly [*Why Rust?*](http://www.oreilly.com/programming/free/files/why-rust.pdf) I suddenly realized that this is language I'm trying to build,
+when you actually start using Rust you'll find that `fn` and `let mut` fits Rust's logic well. For me, **Rust is once a dream now a reality.**
 
-Rust has a steep learning curve, more challenging than any of the previous programming languages I learned. All this learning is worthwhile when you finally get your program working and polished. Object oriented class hierarchy is not good enough for code reuse, Rust's enum, tuple, struct and trait type system is a better solution. I still wondering whether the Rust compiler can be smart enough to elide all the lifetime parameters, they are mostly noise and obstacle when reading and writing programs.
+Rust has a steep learning curve, more challenging than any of the previous programming languages I learned. All this learning is worthwhile when you finally get your program working and polished.
+Object oriented class hierarchy is not good enough for code reuse, Rust's enum, tuple, struct and trait type system is a better solution.
+I still wondering whether the Rust compiler can be smart enough to elide all the lifetime parameters, they are mostly noise and obstacle when reading and writing programs.
 
 ## What is PEG?
 
-When I discovered [PEG](http://bford.info/packrat/), I realized that all my previous work on LALR can be thrown away. I rewrote my parser generator using and working with PEG. Using this parser generator I created a [YAML parser](https://www.codeproject.com/Articles/28720/YAML-Parser-in-C) and a [Lua Interpreter](https://www.codeproject.com/Articles/228212/Lua-Interpreter).
+When I discovered [PEG](http://bford.info/packrat/), I knew that all my previous work on LALR can be thrown away.
+I rewrote my parser generator using and working with PEG. Using this parser generator I created a [YAML parser](https://www.codeproject.com/Articles/28720/YAML-Parser-in-C) and a [Lua Interpreter](https://www.codeproject.com/Articles/228212/Lua-Interpreter).
 
-[Parsing Expression Grammars](http://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEGs) are an alternative to [Context-Free Grammars](http://en.wikipedia.org/wiki/Context-free_grammar) (CFGs) for formally specifying syntax. CFG describe a rule system to generate language strings while PEG describe a rule system to recognize language strings.
+[Parsing Expression Grammars](http://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEGs) are an alternative to [Context-Free Grammars](http://en.wikipedia.org/wiki/Context-free_grammar) (CFGs) for formally specifying syntax.
+CFG describe a rule system to generate language strings while PEG describe a rule system to recognize language strings.
 
 ![CFG](cfg.png)
 
 ![PEG](peg.png)
 
-Unlike CFGs, PEGs cannot be ambiguous; if a string parses, it has exactly one valid parse tree. We normally specify our languages directly by how to recognize it, so PEG is both closer match to syntax practices and more powerful than deterministic CFG.
+Unlike CFGs, PEGs cannot be ambiguous; if a string parses, it has exactly one valid parse tree.
+We normally specify our languages directly by how to recognize it, so PEG is both closer match to syntax practices and more powerful than deterministic CFG.
 
 ### Parsing expressions
 
@@ -309,7 +323,10 @@ I thought deeply about how to implement parser combinator using language constru
 
    Crate [nom](https://github.com/Geal/nom) is using this approach.
 
-According to above comparison, parser as struct is the best approach. At first I choose to use nom to create a PDF parser, it turns out a special PDF feature blocked me. When parsing a PDF stream object, it's length may be a referenced object, hence the need to get the length from a reader. The `named! ` macro cannot accept extra parameters, there is no obvious way to read a length object inside a stream object parser. This is the primary reason why I started to develop pom.
+According to above comparison, parser as struct is the best approach. At first I choose to use nom to create a PDF parser, it turns out a special PDF feature blocked me.
+When parsing a PDF stream object, it's length may be a referenced object, hence the need to get the length from a reader.
+The `named! ` macro cannot accept extra parameters, there is no obvious way to read a length object inside a stream object parser.
+This is the primary reason why I started to develop pom.
 
 ## List of predefined parsers and combinators in pom
 
@@ -434,7 +451,9 @@ fn string() -> Parser<u8, String> {
 }
 ```
 
-The bulk of code is written to parse escape sequences. According to [Wikipedia](https://en.wikipedia.org/wiki/JSON#Data_portability_issues),  UTF-16 surrogate pairs is a detail missed by some JSON parsers. We implement this easily with Rust's Unicode support.
+The bulk of code is written to parse escape sequences.
+According to [Wikipedia](https://en.wikipedia.org/wiki/JSON#Data_portability_issues), UTF-16 surrogate pairs is a detail missed by some JSON parsers.
+We implement this easily with Rust's Unicode support.
 
 ```rust
 fn array() -> Parser<u8, Vec<JsonValue>> {
@@ -470,7 +489,8 @@ pub fn json() -> Parser<u8, JsonValue> {
 }
 ```
 
-The final JSON parser, declared as public. According to [RFC 7159](https://tools.ietf.org/html/rfc7159) a JSON text is a serialized value of any of the six types. `end()` is used to ensure there is no extra text in the input except whitespace.
+The final JSON parser, declared as public. According to [RFC 7159](https://tools.ietf.org/html/rfc7159) a JSON text is a serialized value of any of the six types.
+`end()` is used to ensure there is no extra text in the input.
 
 ```rust
 fn main() {
@@ -529,13 +549,17 @@ The first character indicates the number of `o`s to parse, then the number is us
 
 ## Conclusion
 
-I think I created something really cool, you can use pom to write all kinds of parsers elegantly. I helped pom to evolve version by version into what it is, and pom also helps me to grow my Rust programming skills a lot. Of course there is still room for improvement, any feed back is welcome.
+I think I created something really cool, you can use pom to write all kinds of parsers elegantly.
+I helped pom to evolve version by version into what it is, and pom also helps me to grow my Rust programming skills a lot.
+Of course there is still room for improvement, any feed back is welcome.
 
 ## Points of interest
 
-I try to add a `cache()` method to `Parser`. Memorize the result on given input position, return the result directly when called again, effectively implementing the Packrat Parsing algorithm. But there are two problems, 1) save result means mutate a Hashmap, so Parser's method field should be a Box of `FnMut`, 2) Hashmap returns an reference of value for a given key, the value cannot be moved, so need to make the value cloneable.
+I try to add a `cache()` method to `Parser`. Memorize the result on given input position, return the result directly when called again, effectively implementing the Packrat Parsing algorithm.
+But there are two problems, 1) save result means mutate a Hashmap, so Parser's method field should be a Box of `FnMut`,
+2) Hashmap returns an reference of value for a given key, the value cannot be moved, so need to make the value cloneable.
 
 ## More Readings
 
 - [The Rust programming language, in the words of its practitioners](https://brson.github.io/fireflowers/)
-- [ PEGs, Packrats and Parser Combinators](http://scg.unibe.ch/download/lectures/cc2011/10PEGs.pptx.pdf)
+- [PEGs, Packrats and Parser Combinators](http://scg.unibe.ch/download/lectures/cc2011/10PEGs.pptx.pdf)
