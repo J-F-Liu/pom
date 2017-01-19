@@ -4,6 +4,11 @@
 
 PEG parser combinators created using operator overloading without macros.
 
+## Document
+
+- [Tutorial](https://github.com/J-F-Liu/pom/blob/master/doc/article.md)
+- [API Reference](https://docs.rs/crate/pom/)
+
 ## What is PEG?
 
 PEG stands for parsing expression grammar, is a type of analytic formal grammar, i.e. it describes a formal language in terms of a set of rules for recognizing strings in the language.
@@ -54,6 +59,10 @@ And the code is easier to debug than macros.
 |p.map(f)|Convert parser result to desired value.|
 |p.collect()|Collect all matched input symbols.|
 |p.discard()|Discard parser output.|
+
+The choice of operators is established by their operator precedence, arity and "meaning".
+Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
+For example, `A * B * C - D + E - F` wil return the result of C and E as a pair.
 
 ## Example code
 ```rust

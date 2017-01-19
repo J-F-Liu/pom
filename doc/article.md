@@ -548,7 +548,7 @@ The first character indicates the number of `o`s to parse, then the number is us
 ## More examples
 
 - A [simple PDF parser](https://github.com/J-F-Liu/lopdf/blob/491dece5867a2b81878208bcb5e07ff1007c0d89/src/parser.rs), you can compare it with the equivalent [nom version](https://github.com/J-F-Liu/lopdf/blob/dff82c49fea9ac9ea23edf42ad80e480bd5edb46/src/parser.rs).
-- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/cf6b09a83939233c53194f71360d7badfcb03014/src/parser.rs) which can read length object when parsing stream object. 
+- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/89102c998c866452a98797dc625fa84ee0edbdd0/src/parser.rs) which can read length object when parsing stream object. 
 
 ## Conclusion
 
