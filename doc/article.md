@@ -346,7 +346,7 @@ This is the primary reason why I started to develop pom.
 | skip(n)        | Skip *n* symbols.                        |
 | call(pf)       | Call a parser factory, can used to create recursive parsers. |
 
-There are functions to create basic parsers.
+These are functions to create basic parsers.
 
 
 | Parser Combinators | Description                              |
@@ -363,7 +363,10 @@ There are functions to create basic parsers.
 | p.collect()        | Collect all matched input symbols.       |
 | p.discard()        | Discard parser output.                   |
 
-There are operations to create new parsers based on other parsers.
+These are operations to create new parsers based on other parsers. The choice of operators is established by their operator precedence, arity and "meaning".
+
+Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
+For example, `A * B * C - D + E - F` wil return the result of C and E as a pair.
 
 ## Using the code
 
