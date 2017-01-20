@@ -80,7 +80,7 @@ assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 ### Example JSON parser
 ```rust
 extern crate pom;
-use pom::DataInput;
+use pom::{Parser, DataInput};
 use pom::parser::*;
 
 use std::str::FromStr;

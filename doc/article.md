@@ -400,7 +400,7 @@ Let me explain the parser combinators in more detail by creating a JSON parser. 
 
 ```rust
 extern crate pom;
-use pom::DataInput;
+use pom::{Parser, DataInput};
 use pom::char_class::hex_digit;
 use pom::parser::*;
 
