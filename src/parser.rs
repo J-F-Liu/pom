@@ -5,14 +5,14 @@ use std::collections::Bound::{Excluded, Included, Unbounded};
 use super::{Result, Error, Input, Train};
 
 /// Parser combinator.
-pub struct Parser<I, O> {
-	method: Box<Fn(&mut Input<I>) -> Result<O>>,
+pub struct Parser<'a, I, O> {
+	method: Box<Fn(&mut Input<I>) -> Result<O> + 'a>,
 }
 
-impl<I, O> Parser<I, O> {
+impl<'a, I, O> Parser<'a, I, O> {
 	/// Create new parser.
-	pub fn new<P>(parse: P) -> Parser<I, O>
-		where P: Fn(&mut Input<I>) -> Result<O> + 'static
+	pub fn new<P>(parse: P) -> Parser<'a, I, O>
+		where P: Fn(&mut Input<I>) -> Result<O> + 'a
 	{
 		Parser { method: Box::new(parse) }
 	}
@@ -23,7 +23,7 @@ impl<I, O> Parser<I, O> {
 	}
 
 	/// Convert parser result to desired value.
-	pub fn map<U, F>(self, f: F) -> Parser<I, U>
+	pub fn map<U, F>(self, f: F) -> Parser<'a, I, U>
 		where F: Fn(O) -> U + 'static,
 			  I: 'static,
 			  O: 'static,
@@ -33,7 +33,7 @@ impl<I, O> Parser<I, O> {
 	}
 
 	/// Collect all matched input symbols.
-	pub fn collect(self) -> Parser<I, Vec<I>>
+	pub fn collect(self) -> Parser<'a, I, Vec<I>>
 		where I: Copy + 'static,
 			  O: 'static
 	{
@@ -47,7 +47,7 @@ impl<I, O> Parser<I, O> {
 	}
 
 	/// Discard parser output.
-	pub fn discard(self) -> Parser<I, ()>
+	pub fn discard(self) -> Parser<'a, I, ()>
 		where I: 'static,
 			  O: 'static
 	{
@@ -57,7 +57,7 @@ impl<I, O> Parser<I, O> {
 	}
 
 	/// Make parser optional.
-	pub fn opt(self) -> Parser<I, Option<O>>
+	pub fn opt(self) -> Parser<'a, I, Option<O>>
 		where I: 'static,
 			  O: 'static
 	{
@@ -72,7 +72,7 @@ impl<I, O> Parser<I, O> {
 	/// `p.repeat(0..)` repeat p zero or more times
 	/// `p.repeat(1..)` repeat p one or more times
 	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
-	pub fn repeat<R>(self, range: R) -> Parser<I, Vec<O>>
+	pub fn repeat<R>(self, range: R) -> Parser<'a, I, Vec<O>>
 		where R: RangeArgument<usize> + Debug + 'static,
 			  I: Copy + 'static,
 			  O: 'static
@@ -103,12 +103,12 @@ impl<I, O> Parser<I, O> {
 }
 
 /// Always success, consume no input.
-pub fn empty<I>() -> Parser<I, ()> {
+pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 	Parser::new(|_: &mut Input<I>| Ok(()))
 }
 
 /// Sucess when current input symbol equals t.
-pub fn sym<I>(t: I) -> Parser<I, I>
+pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
@@ -129,7 +129,7 @@ pub fn sym<I>(t: I) -> Parser<I, I>
 }
 
 /// Sucess when sequence of symbols match current input.
-pub fn seq<I, T>(train: &'static T) -> Parser<I, Vec<I>>
+pub fn seq<'a, I, T>(train: &'static T) -> Parser<'a, I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
 		  T: Train<I> + ?Sized
 {
@@ -163,7 +163,7 @@ pub fn seq<I, T>(train: &'static T) -> Parser<I, Vec<I>>
 }
 
 /// Parse separated list.
-pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I, Vec<O>>
+pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) -> Parser<'a, I, Vec<O>>
 	where I: Copy + 'static,
 		  O: 'static,
 		  U: 'static
@@ -191,7 +191,7 @@ pub fn list<I, O, U>(parser: Parser<I, O>, separator: Parser<I, U>) -> Parser<I,
 }
 
 /// Sucess when current input symbol is one of the set.
-pub fn one_of<I, T>(train: &'static T) -> Parser<I, I>
+pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I> + ?Sized
 {
@@ -214,7 +214,7 @@ pub fn one_of<I, T>(train: &'static T) -> Parser<I, I>
 }
 
 /// Sucess when current input symbol is none of the set.
-pub fn none_of<I, T>(train: &'static T) -> Parser<I, I>
+pub fn none_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I> + ?Sized
 {
@@ -238,7 +238,7 @@ pub fn none_of<I, T>(train: &'static T) -> Parser<I, I>
 
 
 /// Sucess when predict return true on current input symbol.
-pub fn is_a<I, F>(predict: F) -> Parser<I, I>
+pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'static
 {
@@ -260,7 +260,7 @@ pub fn is_a<I, F>(predict: F) -> Parser<I, I>
 }
 
 /// Sucess when predict return false on current input symbol.
-pub fn not_a<I, F>(predict: F) -> Parser<I, I>
+pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'static
 {
@@ -282,7 +282,7 @@ pub fn not_a<I, F>(predict: F) -> Parser<I, I>
 }
 
 /// Sucess when the range contains current input symbol.
-pub fn range<I, R>(set: R) -> Parser<I, I>
+pub fn range<'a, I, R>(set: R) -> Parser<'a, I, I>
 	where I: Copy + PartialOrd<I> + Display + Debug + 'static,
 		  R: RangeArgument<I> + Debug + 'static
 {
@@ -319,7 +319,7 @@ pub fn range<I, R>(set: R) -> Parser<I, I>
 }
 
 /// Read n symbols.
-pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
+pub fn take<'a, I>(n: usize) -> Parser<'a, I, Vec<I>>
 	where I: Copy + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
@@ -342,7 +342,7 @@ pub fn take<I>(n: usize) -> Parser<I, Vec<I>>
 }
 
 /// Skip n symbols.
-pub fn skip<I>(n: usize) -> Parser<I, ()>
+pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
 	where I: Copy + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
@@ -365,10 +365,10 @@ pub fn skip<I>(n: usize) -> Parser<I, ()>
 }
 
 /// Call a parser factory, can be used to create recursive parsers.
-pub fn call<I, O, F>(parser_factory: F) -> Parser<I, O>
+pub fn call<'a, I, O, F>(parser_factory: F) -> Parser<'a, I, O>
 	where I: 'static,
 		  O: 'static,
-		  F: Fn() -> Parser<I, O> + 'static
+		  F: Fn() -> Parser<'a, I, O> + 'static
 {
 	Parser::new(move |input: &mut Input<I>| {
 		let parser = parser_factory();
@@ -377,7 +377,7 @@ pub fn call<I, O, F>(parser_factory: F) -> Parser<I, O>
 }
 
 /// Success when end of input is reached.
-pub fn end<I>() -> Parser<I, ()>
+pub fn end<'a, I>() -> Parser<'a, I, ()>
 	where I: Copy + Display + 'static
 {
 	Parser::new(|input: &mut Input<I>| {
@@ -393,14 +393,10 @@ pub fn end<I>() -> Parser<I, ()>
 }
 
 /// Sequence reserve value
-impl<I: Copy, O, U> Add<Parser<I, U>> for Parser<I, O> {
-	type Output = Parser<I, (O, U)>;
+impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static> Add<Parser<'b, I, U>> for Parser<'a, I, O> {
+	type Output = Parser<'b, I, (O, U)>;
 
-	fn add(self, other: Parser<I, U>) -> Self::Output
-		where I: 'static,
-			  O: 'static,
-			  U: 'static
-	{
+	fn add(self, other: Parser<'b, I, U>) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|out2| (out1, out2)));
@@ -413,14 +409,10 @@ impl<I: Copy, O, U> Add<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Sequence discard second value
-impl<I: Copy, O, U> Sub<Parser<I, U>> for Parser<I, O> {
-	type Output = Parser<I, O>;
+impl<'a, 'b: 'a, I: Copy + 'static, O: 'static, U: 'static> Sub<Parser<'b, I, U>> for Parser<'a, I, O> {
+	type Output = Parser<'a, I, O>;
 
-	fn sub(self, other: Parser<I, U>) -> Self::Output
-		where I: 'static,
-			  O: 'static,
-			  U: 'static
-	{
+	fn sub(self, other: Parser<'b, I, U>) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other.parse(input).map(|_| out1));
@@ -433,14 +425,10 @@ impl<I: Copy, O, U> Sub<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Sequence discard first value
-impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
-	type Output = Parser<I, U>;
+impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static> Mul<Parser<'b, I, U>> for Parser<'a, I, O> {
+	type Output = Parser<'b, I, U>;
 
-	fn mul(self, other: Parser<I, U>) -> Self::Output
-		where I: 'static,
-			  O: 'static,
-			  U: 'static
-	{
+	fn mul(self, other: Parser<'b, I, U>) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input).and_then(|_| other.parse(input));
@@ -453,15 +441,10 @@ impl<I: Copy, O, U> Mul<Parser<I, U>> for Parser<I, O> {
 }
 
 /// Chain two passers where the second parser depends on the first's result.
-impl<I: Copy, O, U, F: Fn(O) -> Parser<I, U>> Shr<F> for Parser<I, O> {
-	type Output = Parser<I, U>;
+impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static, F: Fn(O) -> Parser<'b, I, U> + 'a> Shr<F> for Parser<'a, I, O> {
+	type Output = Parser<'b, I, U>;
 
-	fn shr(self, other: F) -> Self::Output
-		where I: 'static,
-			  O: 'static,
-			  U: 'static,
-			  F: 'static
-	{
+	fn shr(self, other: F) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input).and_then(|out1| other(out1).parse(input));
@@ -474,13 +457,10 @@ impl<I: Copy, O, U, F: Fn(O) -> Parser<I, U>> Shr<F> for Parser<I, O> {
 }
 
 /// Ordered choice
-impl<I, O> BitOr for Parser<I, O> {
-	type Output = Parser<I, O>;
+impl<'a, I: 'static, O: 'static> BitOr for Parser<'a, I, O> {
+	type Output = Parser<'a, I, O>;
 
-	fn bitor(self, other: Parser<I, O>) -> Self::Output
-		where I: 'static,
-			  O: 'static
-	{
+	fn bitor(self, other: Parser<'a, I, O>) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			self.parse(input).or_else(|_| other.parse(input))
 		})
@@ -488,13 +468,10 @@ impl<I, O> BitOr for Parser<I, O> {
 }
 
 /// And predicate
-impl<I: Copy, O> Neg for Parser<I, O> {
-	type Output = Parser<I, bool>;
+impl<'a, I: Copy + 'static, O: 'static> Neg for Parser<'a, I, O> {
+	type Output = Parser<'a, I, bool>;
 
-	fn neg(self) -> Self::Output
-		where I: 'static,
-			  O: 'static
-	{
+	fn neg(self) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input);
@@ -505,13 +482,10 @@ impl<I: Copy, O> Neg for Parser<I, O> {
 }
 
 /// Not predicate
-impl<I: Copy, O> Not for Parser<I, O> {
-	type Output = Parser<I, bool>;
+impl<'a, I: Copy + 'static, O: 'static> Not for Parser<'a, I, O> {
+	type Output = Parser<'a, I, bool>;
 
-	fn not(self) -> Self::Output
-		where I: 'static,
-			  O: 'static
-	{
+	fn not(self) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
 			let start = input.position();
 			let result = self.parse(input);
@@ -565,7 +539,7 @@ mod tests {
 			Empty,
 			Group(Box<Expr>)
 		}
-		fn expr() -> Parser<u8, Expr> {
+		fn expr() -> Parser<'static, u8, Expr> {
 			(sym(b'(') + call(expr) - sym(b')')).map(|(_, e)|Expr::Group(Box::new(e)))
 			| empty().map(|_|Expr::Empty)
 		}

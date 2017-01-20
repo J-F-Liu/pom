@@ -1,7 +1,6 @@
 #![feature(loop_break_value)]
 #![feature(collections_range)]
 #![feature(collections_bound)]
-#![allow(extra_requirement_in_impl)]
 
 mod input;
 mod result;
