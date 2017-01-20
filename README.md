@@ -62,7 +62,8 @@ And the code is easier to debug than macros.
 
 The choice of operators is established by their operator precedence, arity and "meaning".
 Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
-For example, `A * B * C - D + E - F` wil return the result of C and E as a pair.
+
+For example, `A * B * C - D + E - F` wil return the results of C and E as a pair.
 
 ## Example code
 ```rust

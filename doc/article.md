@@ -144,6 +144,7 @@ I thought deeply about how to implement parser combinator using language constru
            })
        }
    }
+   ...
    // To create a parser for integer
    let parser = one_of("+-").opt() + one_of("0123456789").repeat(1..);
    ```
@@ -562,7 +563,20 @@ I try to add a `cache()` method to `Parser`. Memorize the result on given input 
 But there are two problems, 1) save result means mutate a Hashmap, so Parser's method field should be a Box of `FnMut`,
 2) Hashmap returns an reference of value for a given key, the value cannot be moved, so need to make the value cloneable.
 
+## Pain points where Rust needs to improve
+
+1. Implement trait for `[T]` should automatically implement `[T; N]`.
+2. The standard library should provide a char_at() method return the char and the number of bytes consumed, like:
+
+```
+pub trait Encoding {
+	/// Get char at a byte index, return the char and the number of bytes read.
+	fn char_at(&self, data: &[u8], index: usize) -> Result<(char, u32)>;
+}
+```
+
 ## More Readings
 
 - [The Rust programming language, in the words of its practitioners](https://brson.github.io/fireflowers/)
 - [PEGs, Packrats and Parser Combinators](http://scg.unibe.ch/download/lectures/cc2011/10PEGs.pptx.pdf)
+- [An introduction to parsing text in Haskell with Parsec](http://unbui.lt/#!/post/haskell-parsec-basics/)
