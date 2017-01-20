@@ -441,7 +441,7 @@ impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static> Mul<Parser<'b, I, U>
 }
 
 /// Chain two passers where the second parser depends on the first's result.
-impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static, F: Fn(O) -> Parser<'b, I, U> + 'a> Shr<F> for Parser<'a, I, O> {
+impl<'b, 'a: 'b, I: Copy + 'static, O: 'static, U: 'static, F: Fn(O) -> Parser<'b, I, U> + 'b> Shr<F> for Parser<'a, I, O> {
 	type Output = Parser<'b, I, U>;
 
 	fn shr(self, other: F) -> Self::Output {
