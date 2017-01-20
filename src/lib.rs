@@ -11,3 +11,4 @@ pub mod char_class;
 pub use input::{Input, DataInput, TextInput};
 pub use result::{Result, Error};
 pub use train::Train;
+pub type Parser<I, O> = parser::Parser<'static, I, O>;
