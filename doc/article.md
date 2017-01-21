@@ -361,13 +361,14 @@ These are functions to create basic parsers.
 | p.opt()            | Make parser optional.                    |
 | p.repeat(m..n)     | `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times |
 | p.map(f)           | Convert parser result to desired value.  |
+| p.pos()            | Get input position after matching p.     |
 | p.collect()        | Collect all matched input symbols.       |
 | p.discard()        | Discard parser output.                   |
 
 These are operations to create new parsers based on other parsers. The choice of operators is established by their operator precedence, arity and "meaning".
 
 Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
-For example, `A * B * C - D + E - F` wil return the results of C and E as a pair.
+For example, `A * B * C - D + E - F` will return the results of C and E as a pair.
 
 ## Using the code
 
@@ -549,7 +550,7 @@ The first character indicates the number of `o`s to parse, then the number is us
 ## More examples
 
 - A [simple PDF parser](https://github.com/J-F-Liu/lopdf/blob/491dece5867a2b81878208bcb5e07ff1007c0d89/src/parser.rs), you can compare it with the equivalent [nom version](https://github.com/J-F-Liu/lopdf/blob/dff82c49fea9ac9ea23edf42ad80e480bd5edb46/src/parser.rs).
-- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/89102c998c866452a98797dc625fa84ee0edbdd0/src/parser.rs) which can read length object when parsing stream object. 
+- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/master/src/parser.rs) which can read length object when parsing stream object. 
 
 ## Conclusion
 

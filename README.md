@@ -57,13 +57,14 @@ And the code is easier to debug than macros.
 |p.opt()|Make parser optional. Returns an `Option`.|
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
 |p.map(f)|Convert parser result to desired value.|
+|p.pos() |Get input position after matching p.|
 |p.collect()|Collect all matched input symbols.|
 |p.discard()|Discard parser output.|
 
 The choice of operators is established by their operator precedence, arity and "meaning".
 Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
 
-For example, `A * B * C - D + E - F` wil return the results of C and E as a pair.
+For example, `A * B * C - D + E - F` will return the results of C and E as a pair.
 
 ## Example code
 ```rust

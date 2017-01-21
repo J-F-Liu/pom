@@ -29,7 +29,19 @@ impl<'a, I, O> Parser<'a, I, O> {
 			  O: 'static,
 			  U: 'static
 	{
-		Parser::new(move |input: &mut Input<I>| self.parse(input).map(&f))
+		Parser::new(move |input: &mut Input<I>| {
+			self.parse(input).map(&f)
+		})
+	}
+
+	/// Get input position after matching parser.
+	pub fn pos(self) -> Parser<'a, I, usize>
+		where I: Copy + 'static,
+			  O: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			self.parse(input).map(|_|input.position())
+		})
 	}
 
 	/// Collect all matched input symbols.
@@ -517,6 +529,7 @@ mod tests {
 		let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
+		assert_eq!(empty().pos().parse(&mut input), Ok( 5 ) );
 
 		let parser = sym(b'e') | sym(b'd') | empty().map(|_| b'0');
 		let output = parser.parse(&mut input);
