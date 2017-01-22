@@ -567,10 +567,18 @@ mod tests {
 		let mut input = DataInput::new(b"5oooooooo");
 		// let parser = one_of(b"0123456789").map(|c|c - b'0') >> |n| take(n as usize) + sym(b'o').repeat(0..);
 		let parser = skip(1) * take(3) >> |v:Vec<u8>|{
-			take(5).map(move |u|{
+			take(v.len()+2).map(move |u|{
 				(u, v.clone())
 			})
 		};
+		// To avoid clone v:
+		// let parser = Parser::new(move |input| {
+		// 	(skip(1) * take(3)).parse(input).and_then(|v:Vec<u8>| {
+		// 			take(v.len()+2).parse(input).map(|u|{
+		// 				(u, v)
+		// 			})
+		// 	})
+		// });
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
 	}
