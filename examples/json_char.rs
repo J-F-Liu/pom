@@ -43,15 +43,14 @@ fn string() -> Parser<char, String> {
 
 fn array() -> Parser<char, Vec<JsonValue>> {
 	let elems = list(call(value), sym(',') * space());
-	let arr = sym('[') * space() * elems.opt() - sym(']');
-	arr.map(|elems|elems.unwrap_or(vec![]))
+	sym('[') * space() * elems - sym(']')
 }
 
 fn object() -> Parser<char, HashMap<String, JsonValue>> {
 	let member = string() - space() - sym(':') - space() + call(value);
 	let members = list(member, sym(',') * space());
-	let obj = sym('{') * space() * members.opt() - sym('}');
-	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
+	let obj = sym('{') * space() * members - sym('}');
+	obj.map(|members|members.into_iter().collect::<HashMap<_,_>>())
 }
 
 fn value() -> Parser<char, JsonValue> {

@@ -120,15 +120,14 @@ fn string() -> Parser<u8, String> {
 
 fn array() -> Parser<u8, Vec<JsonValue>> {
 	let elems = list(call(value), sym(b',') * space());
-	let arr = sym(b'[') * space() * elems.opt() - sym(b']');
-	arr.map(|elems|elems.unwrap_or(vec![]))
+	sym(b'[') * space() * elems - sym(b']')
 }
 
 fn object() -> Parser<u8, HashMap<String, JsonValue>> {
 	let member = string() - space() - sym(b':') - space() + call(value);
 	let members = list(member, sym(b',') * space());
-	let obj = sym(b'{') * space() * members.opt() - sym(b'}');
-	obj.map(|members|members.unwrap_or(vec![]).into_iter().collect::<HashMap<_,_>>())
+	let obj = sym(b'{') * space() * members - sym(b'}');
+	obj.map(|members|members.into_iter().collect::<HashMap<_,_>>())
 }
 
 fn value() -> Parser<u8, JsonValue> {
@@ -176,6 +175,6 @@ cargo run --example json
 
 | Parser           | Time to parse the same JSON file |
 |------------------|----------------------------------|
-| pom: json_byte   | 3,962 ns/iter (+/- 258)          |
-| pom: json_char   | 4,194 ns/iter (+/- 87)           |
+| pom: json_byte   | 3,603 ns/iter (+/- 149)          |
+| pom: json_char   | 3,920 ns/iter (+/- 432)           |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
