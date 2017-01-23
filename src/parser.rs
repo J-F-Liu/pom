@@ -24,7 +24,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 
 	/// Convert parser result to desired value.
 	pub fn map<U, F>(self, f: F) -> Parser<'a, I, U>
-		where F: Fn(O) -> U + 'static,
+		where F: Fn(O) -> U + 'a,
 			  I: 'static,
 			  O: 'static,
 			  U: 'static
@@ -36,7 +36,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 
 	/// Convert parser result to desired value, fail in case of conversion error.
 	pub fn convert<U, E, F>(self, f: F) -> Parser<'a, I, U>
-		where F: Fn(O) -> ::std::result::Result<U, E> + 'static,
+		where F: Fn(O) -> ::std::result::Result<U, E> + 'a,
 			  E: Debug,
 			  I: Copy + 'static,
 			  O: 'static,
@@ -110,7 +110,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// `p.repeat(1..)` repeat p one or more times
 	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
 	pub fn repeat<R>(self, range: R) -> Parser<'a, I, Vec<O>>
-		where R: RangeArgument<usize> + Debug + 'static,
+		where R: RangeArgument<usize> + Debug + 'a,
 			  I: Copy + 'static,
 			  O: 'static
 	{
@@ -277,7 +277,7 @@ pub fn none_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 /// Sucess when predict return true on current input symbol.
 pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  F: Fn(I) -> bool + 'static
+		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -299,7 +299,7 @@ pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 /// Sucess when predict return false on current input symbol.
 pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  F: Fn(I) -> bool + 'static
+		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -321,7 +321,7 @@ pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 /// Sucess when the range contains current input symbol.
 pub fn range<'a, I, R>(set: R) -> Parser<'a, I, I>
 	where I: Copy + PartialOrd<I> + Display + Debug + 'static,
-		  R: RangeArgument<I> + Debug + 'static
+		  R: RangeArgument<I> + Debug + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -405,7 +405,7 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
 pub fn call<'a, I, O, F>(parser_factory: F) -> Parser<'a, I, O>
 	where I: 'static,
 		  O: 'static,
-		  F: Fn() -> Parser<'a, I, O> + 'static
+		  F: Fn() -> Parser<'a, I, O> + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		let parser = parser_factory();
