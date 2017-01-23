@@ -35,7 +35,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Convert parser result to desired value, fail in case of conversion error.
-	pub fn map_res<U, E, F>(self, f: F) -> Parser<'a, I, U>
+	pub fn convert<U, E, F>(self, f: F) -> Parser<'a, I, U>
 		where F: Fn(O) -> ::std::result::Result<U, E> + 'static,
 			  E: Debug,
 			  I: Copy + 'static,
