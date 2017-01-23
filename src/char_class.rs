@@ -36,7 +36,7 @@ pub fn space(term: u8) -> bool {
 	term == b' ' || term == b'\t'
 }
 
-/// Recognises a space, tab, line feed, or carriage returns.
+/// Recognises a space, tab, line feed, or carriage return.
 #[inline]
 pub fn multispace(term: u8) -> bool {
 	space(term) || term == b'\n' || term == b'\r'
