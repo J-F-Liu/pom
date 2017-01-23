@@ -34,6 +34,31 @@ impl<'a, I, O> Parser<'a, I, O> {
 		})
 	}
 
+	/// Convert parser result to desired value, fail in case of conversion error.
+	pub fn map_res<U, E, F>(self, f: F) -> Parser<'a, I, U>
+		where F: Fn(O) -> ::std::result::Result<U, E> + 'static,
+			  E: Debug,
+			  I: Copy + 'static,
+			  O: 'static,
+			  U: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position();
+			self.parse(input).and_then(|res|{
+				match f(res) {
+					Ok(out) => Ok(out),
+					Err(err) => {
+						input.jump_to(start);
+						Err(Error::Conversion{
+							message: format!("Conversion error: {:?}", err),
+							position: start,
+						})
+					}
+				}
+			})
+		})
+	}
+
 	/// Get input position after matching parser.
 	pub fn pos(self) -> Parser<'a, I, usize>
 		where I: Copy + 'static,

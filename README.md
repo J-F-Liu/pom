@@ -57,6 +57,7 @@ And the code is easier to debug than macros.
 |p.opt()|Make parser optional. Returns an `Option`.|
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
 |p.map(f)|Convert parser result to desired value.|
+|p.map_res(f)|Convert parser result to desired value, fail in case of conversion error.|
 |p.pos() |Get input position after matching p.|
 |p.collect()|Collect all matched input symbols.|
 |p.discard()|Discard parser output.|
@@ -106,7 +107,7 @@ fn number() -> Parser<u8, f64> {
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().map(|v|String::from_utf8(v).unwrap()).map(|s|f64::from_str(&s).unwrap())
+	number.collect().map_res(|v|String::from_utf8(v)).map_res(|s|f64::from_str(&s))
 }
 
 fn string() -> Parser<u8, String> {
@@ -115,7 +116,7 @@ fn string() -> Parser<u8, String> {
 		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
 	let escape_sequence = sym(b'\\') * special_char;
 	let string = sym(b'"') * (none_of(b"\\\"") | escape_sequence).repeat(0..) - sym(b'"');
-	string.map(|v|String::from_utf8(v).unwrap())
+	string.map_res(|v|String::from_utf8(v))
 }
 
 fn array() -> Parser<u8, Vec<JsonValue>> {
