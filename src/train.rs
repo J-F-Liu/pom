@@ -1,6 +1,6 @@
 /// A train is a series of knots, each knot can be a terminal symbol.
 /// Train is used as argument of seq(), one_of() and none_of(),
-/// so that both b'[u8] literal' and "string literal" can be accepted.
+/// so that both b"byte string literal" and "string literal" can be accepted.
 pub trait Train<K> {
 	fn knots(&self) -> Vec<K>;
 	fn to_str(&self) -> &str;

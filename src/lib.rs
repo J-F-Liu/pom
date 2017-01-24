@@ -9,7 +9,7 @@ mod train;
 /// Constains predefined parsers and combinators.
 pub mod parser;
 
-/// Utility functions to get char class of byte value.
+/// Utility functions to recognize char class of byte value.
 pub mod char_class;
 
 pub use input::{Input, DataInput, TextInput};
