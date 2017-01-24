@@ -36,13 +36,8 @@ impl<'a, T: Copy> Input<T> for DataInput<'a, T> {
 		self.position
 	}
 
-	fn current(&self) -> Option<T>
-	{
-		if self.position < self.data.len() {
-			Some(self.data[self.position])
-		} else {
-			None
-		}
+	fn current(&self) -> Option<T> {
+		self.data.get(self.position).cloned()
 	}
 
 	fn advance(&mut self) {
