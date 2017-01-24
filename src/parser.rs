@@ -137,6 +137,27 @@ impl<'a, I, O> Parser<'a, I, O> {
 			return Ok(items);
 		})
 	}
+
+	/// Give parser a name to identify parsing errors.
+	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
+		where I: Copy + 'static,
+			  O: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position();
+			match self.parse(input) {
+				Ok(out) => Ok(out),
+				Err(err) => match err {
+					Error::Custom{..} => Err(err),
+					_ => Err(Error::Custom {
+						message: format!("failed to parse {}", name),
+						position: start,
+						inner: Some(Box::new(err)),
+					})
+				}
+			}
+		})
+	}
 }
 
 /// Always success, consume no input.

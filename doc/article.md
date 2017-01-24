@@ -365,6 +365,7 @@ These are functions to create basic parsers.
 | p.pos()            | Get input position after matching p.     |
 | p.collect()        | Collect all matched input symbols.       |
 | p.discard()        | Discard parser output.                   |
+| p.name(_)          | Give parser a name to identify parsing errors. |
 
 These are operations to create new parsers based on other parsers. The choice of operators is established by their operator precedence, arity and "meaning".
 
