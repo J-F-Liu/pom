@@ -569,7 +569,6 @@ But there are two problems, 1) save result means mutate a Hashmap, so Parser's m
 
 1. Implement trait for `[T]` should automatically implement `[T; N]`.
 2. The standard library should provide a char_at() method return the char and the number of bytes consumed, like:
-
 	```rust
 	pub trait Encoding {
 		/// Get char at a byte index, return the char and the number of bytes read.
@@ -577,6 +576,19 @@ But there are two problems, 1) save result means mutate a Hashmap, so Parser's m
 	}
 	```
 3. Can ellide 'static lifetime parameter, allow `Parser<'static, I, O>` written as `Parser<I, O>`.
+4. Should `impl Copy for closure`, so that FnOnce closure can be passed to map() inside Fn closure.
+	```rust
+	pub fn map<U, F>(self, f: F) -> Parser<'a, I, U>
+		where F: FnOnce(O) -> U + Copy + 'a,
+			  I: 'static,
+			  O: 'static,
+			  U: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			self.parse(input).map(f)
+		})
+	}
+	```
 
 ## More Readings
 
