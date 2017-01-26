@@ -597,6 +597,7 @@ impl<'a, I: Copy + 'static, O: 'static> Not for Parser<'a, I, O> {
 mod tests {
 	use ::parser::*;
 	use ::{DataInput, TextInput};
+	use ::{Error, Input};
 
 	#[test]
 	fn byte_works() {

@@ -1,17 +1,17 @@
 extern crate pom;
 
-use pom::{Parser, DataInput};
+use pom::DataInput;
 use pom::parser::*;
 
-fn spaces() -> Parser<u8, ()> {
+fn spaces() -> Parser<'static, u8, ()> {
 	one_of(b" ").repeat(1..).discard()
 }
 
-fn works() -> Parser<u8, Vec<u8>> {
+fn works() -> Parser<'static, u8, Vec<u8>> {
 	list(one_of(b"abc"), spaces() * seq(b"and") - spaces())
 }
 
-fn dangle() -> Parser<u8, (Vec<u8>, Vec<u8>)> {
+fn dangle() -> Parser<'static, u8, (Vec<u8>, Vec<u8>)> {
 	list(one_of(b"abc"), spaces() * seq(b"and") - spaces()) + seq(b" and")
 }
 
