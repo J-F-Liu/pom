@@ -1,8 +1,39 @@
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg, Not};
-use std::collections::range::RangeArgument;
-use std::collections::Bound::{Excluded, Included, Unbounded};
+use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
 use super::{Result, Error, Input, Train};
+
+pub enum Bound<'a, T: 'a> {
+	Excluded(&'a T),
+	Included(&'a T),
+	Unbounded,
+}
+use self::Bound::*;
+
+pub trait RangeArgument<T> {
+	fn start(&self) -> Bound<T>;
+	fn end(&self) -> Bound<T>;
+}
+
+impl<T> RangeArgument<T> for Range<T> {
+	fn start(&self) -> Bound<T> { Included(&self.start) }
+	fn end(&self) -> Bound<T> { Excluded(&self.end) }
+}
+
+impl<T> RangeArgument<T> for RangeFrom<T> {
+	fn start(&self) -> Bound<T> { Included(&self.start) }
+	fn end(&self) -> Bound<T> { Unbounded }
+}
+
+impl<T> RangeArgument<T> for RangeTo<T> {
+	fn start(&self) -> Bound<T> { Unbounded }
+	fn end(&self) -> Bound<T> { Excluded(&self.end) }
+}
+
+impl<T> RangeArgument<T> for RangeFull {
+	fn start(&self) -> Bound<T> { Unbounded }
+	fn end(&self) -> Bound<T> { Unbounded }
+}
 
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
@@ -187,29 +218,34 @@ pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 }
 
 /// Sucess when sequence of symbols match current input.
-pub fn seq<'a, I, T>(train: &'static T) -> Parser<'a, I, Vec<I>>
+pub fn seq<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
-		  T: Train<I> + ?Sized
+		  T: Train<I>
 {
 	Parser::new(move |input: &mut Input<I>| {
 		let tag = train.knots();
 		let start = input.position();
 		let mut index = 0;
-		let result = loop {
+		let result;
+
+		loop {
 			if index == tag.len() {
-				break Ok(tag);
+				result = Ok(tag);
+				break;
 			}
 			if let Some(s) = input.current() {
 				if tag[index] == s {
 					input.advance();
 				} else {
-					break Err(Error::Mismatch {
+					result = Err(Error::Mismatch {
 						message: format!("seq {} expect: {}, found: {}", train.to_str(), tag[index], s),
 						position: input.position(),
 					});
+					break;
 				}
 			} else {
-				break Err(Error::Incomplete);
+				result = Err(Error::Incomplete);
+				break;
 			}
 			index += 1;
 		};
@@ -247,9 +283,9 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 }
 
 /// Sucess when current input symbol is one of the set.
-pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
+pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I> + ?Sized
+		  T: Train<I>
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -270,9 +306,9 @@ pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 }
 
 /// Sucess when current input symbol is none of the set.
-pub fn none_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
+pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I> + ?Sized
+		  T: Train<I>
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -561,6 +597,7 @@ impl<'a, I: Copy + 'static, O: 'static> Not for Parser<'a, I, O> {
 mod tests {
 	use ::parser::*;
 	use ::{DataInput, TextInput};
+	use ::{Error, Input};
 
 	#[test]
 	fn byte_works() {

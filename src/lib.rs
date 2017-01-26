@@ -1,7 +1,3 @@
-#![feature(loop_break_value)]
-#![feature(collections_range)]
-#![feature(collections_bound)]
-
 mod input;
 mod result;
 mod train;

@@ -1,5 +1,5 @@
 extern crate pom;
-use pom::{Parser, TextInput};
+use pom::TextInput;
 use pom::parser::*;
 
 use std::str::FromStr;
@@ -17,11 +17,11 @@ pub enum JsonValue {
 	Object(HashMap<String,JsonValue>)
 }
 
-fn space() -> Parser<char, ()> {
+fn space() -> Parser<'static, char, ()> {
 	one_of(" \t\r\n").repeat(0..).discard()
 }
 
-fn number() -> Parser<char, f64> {
+fn number() -> Parser<'static, char, f64> {
 	let integer = one_of("123456789") - one_of("0123456789").repeat(0..) | sym('0');
 	let frac = sym('.') + one_of("0123456789").repeat(1..);
 	let exp = one_of("eE") + one_of("+-").opt() + one_of("0123456789").repeat(1..);
@@ -29,7 +29,7 @@ fn number() -> Parser<char, f64> {
 	number.collect().map(|v|String::from_iter(v)).convert(|s|f64::from_str(&s))
 }
 
-fn string() -> Parser<char, String> {
+fn string() -> Parser<'static, char, String> {
 	let special_char = sym('\\') | sym('/') | sym('"')
 		| sym('b').map(|_|'\x08') | sym('f').map(|_|'\x0C')
 		| sym('n').map(|_|'\n') | sym('r').map(|_|'\r') | sym('t').map(|_|'\t');
@@ -41,19 +41,19 @@ fn string() -> Parser<char, String> {
 	string.map(|strings|strings.concat())
 }
 
-fn array() -> Parser<char, Vec<JsonValue>> {
+fn array() -> Parser<'static, char, Vec<JsonValue>> {
 	let elems = list(call(value), sym(',') * space());
 	sym('[') * space() * elems - sym(']')
 }
 
-fn object() -> Parser<char, HashMap<String, JsonValue>> {
+fn object() -> Parser<'static, char, HashMap<String, JsonValue>> {
 	let member = string() - space() - sym(':') - space() + call(value);
 	let members = list(member, sym(',') * space());
 	let obj = sym('{') * space() * members - sym('}');
 	obj.map(|members|members.into_iter().collect::<HashMap<_,_>>())
 }
 
-fn value() -> Parser<char, JsonValue> {
+fn value() -> Parser<'static, char, JsonValue> {
 	( seq("null").map(|_|JsonValue::Null)
 	| seq("true").map(|_|JsonValue::Bool(true))
 	| seq("false").map(|_|JsonValue::Bool(false))
@@ -64,7 +64,7 @@ fn value() -> Parser<char, JsonValue> {
 	) - space()
 }
 
-pub fn json() -> Parser<char, JsonValue> {
+pub fn json() -> Parser<'static, char, JsonValue> {
 	space() * value() - end()
 }
 
