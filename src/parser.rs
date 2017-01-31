@@ -35,6 +35,11 @@ impl<T> RangeArgument<T> for RangeFull {
 	fn end(&self) -> Bound<T> { Unbounded }
 }
 
+impl RangeArgument<usize> for usize {
+	fn start(&self) -> Bound<usize> { Included(self) }
+	fn end(&self) -> Bound<usize> { Included(self) }
+}
+
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
 	method: Box<Fn(&mut Input<I>) -> Result<O> + 'a>,
@@ -137,6 +142,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 		})
 	}
 
+	/// `p.repeat(5)` repeat p exactly 5 times
 	/// `p.repeat(0..)` repeat p zero or more times
 	/// `p.repeat(1..)` repeat p one or more times
 	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
@@ -148,12 +154,17 @@ impl<'a, I, O> Parser<'a, I, O> {
 		Parser::new(move |input: &mut Input<I>| {
 			let start_pos = input.position();
 			let mut items = vec![];
-			while let Ok(item) = self.parse(input) {
-				items.push(item);
+			loop {
 				match range.end() {
 					Included(&end) => if items.len() >= end { break; },
-					Excluded(&end) => if items.len() >= end - 1 { break; },
-					Unbounded => continue,
+					Excluded(&end) => if items.len() + 1 >= end { break; },
+					Unbounded => (),
+				}
+
+				if let Ok(item) = self.parse(input) {
+					items.push(item)
+				} else {
+					break;
 				}
 			}
 			if let Included(&start) = range.start() {
@@ -191,12 +202,12 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 }
 
-/// Always success, consume no input.
+/// Always succeeds, consume no input.
 pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 	Parser::new(|_: &mut Input<I>| Ok(()))
 }
 
-/// Sucess when current input symbol equals t.
+/// Success when current input symbol equals `t`.
 pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + 'static
 {
@@ -217,7 +228,7 @@ pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when sequence of symbols match current input.
+/// Success when sequence of symbols matches current input.
 pub fn seq<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
 		  T: Train<I>
@@ -282,7 +293,7 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 	})
 }
 
-/// Sucess when current input symbol is one of the set.
+/// Success when current input symbol is one of the set.
 pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I>
@@ -305,7 +316,7 @@ pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when current input symbol is none of the set.
+/// Success when current input symbol is none of the set.
 pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I>
@@ -329,19 +340,19 @@ pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 }
 
 
-/// Sucess when predict return true on current input symbol.
-pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
+/// Success when predicate returns true on current input symbol.
+pub fn is_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			if predict(s) {
+			if predicate(s) {
 				input.advance();
 				Ok(s)
 			} else {
 				Err(Error::Mismatch {
-					message: format!("is_a predict failed on: {}", s),
+					message: format!("is_a predicate failed on: {}", s),
 					position: input.position(),
 				})
 			}
@@ -351,16 +362,16 @@ pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when predict return false on current input symbol.
-pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
+/// Success when predicate returns false on current input symbol.
+pub fn not_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			if predict(s) {
+			if predicate(s) {
 				Err(Error::Mismatch {
-					message: format!("not_a predict failed on: {}", s),
+					message: format!("not_a predicate failed on: {}", s),
 					position: input.position(),
 				})
 			} else {
@@ -373,7 +384,7 @@ pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when the range contains current input symbol.
+/// Success when the range contains current input symbol.
 pub fn range<'a, I, R>(set: R) -> Parser<'a, I, I>
 	where I: Copy + PartialOrd<I> + Display + Debug + 'static,
 		  R: RangeArgument<I> + Debug + 'a
@@ -662,5 +673,117 @@ mod tests {
 		// });
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
+	}
+
+	#[test]
+	fn repeat_at_least() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(1..2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(1..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(0..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'y').repeat(0..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'y').repeat(1..);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err());
+		}
+
+		{
+			let parser = sym(b'x').repeat(10..);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err());
+		}
+	}
+
+	#[test]
+	fn repeat_up_to() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(..2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..4);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..0);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..10);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+	}
+
+
+	#[test]
+	fn repeat_exactly() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(0);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(1);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x';1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 2]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(3);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(4);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err())
+		}
 	}
 }
