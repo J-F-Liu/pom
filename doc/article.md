@@ -68,21 +68,21 @@ A *parser combinator* is a higher-order function which takes parsers as input 
 
 Parser combinators allow you write grammar rules and create a parser directly in the host language, without a separated parser generation step, so the whole procedure is more fluent.
 
-## How to implement parser combinators? 
+## How to implement parser combinators?
 
 I thought deeply about how to implement parser combinator using language constructs provided by Rust. In summary, there are four approaches:
 
 1. Parser as closure
 
    ```rust
-   pub fn empty<I>() -> impl Fn(&mut Input<I>) -> Result<()> { 
-     |_: &mut Input<I>| Ok(()) 
-   } 
-    
-   pub fn term<I>(t: I) -> impl Fn(&mut Input<I>) -> Result<I> { 
+   pub fn empty<I>() -> impl Fn(&mut Input<I>) -> Result<()> {
+     |_: &mut Input<I>| Ok(())
+   }
+
+   pub fn term<I>(t: I) -> impl Fn(&mut Input<I>) -> Result<I> {
        ...
-   } 
-    
+   }
+
    pub fn seq<'a, I>(tag: &'a [I]) -> impl Fn(&mut Input<I>) -> Result<&'a [I]> {
      ...
    }
@@ -164,14 +164,14 @@ I thought deeply about how to implement parser combinator using language constru
 
      fn parse<'a>(&self, data: &'a Self::I) -> ParseResult<&'a Self::I, Self::O>;
    }
-         
+
    pub trait ParserCombinator : Parser + Clone {
      fn then<P: Parser<I=Self::I>>(&self, p: P) -> ChainedParser<Self,P> {
        ChainedParser{first: self.clone(), second: p}
      }
      ...
    }
-         
+
    pub fn opt<T: Parser>(t: T) -> OptionParser<T> {
      OptionParser{parser: t}
    }
@@ -309,12 +309,12 @@ I thought deeply about how to implement parser combinator using language constru
    );
    ...
    // To create a parser for integer
-   named!(integer<&[u8], i64>, map!( 
-     pair!( 
-       opt!(sign), 
-       map_res!(map_res!(digit, str::from_utf8), i64::from_str) 
-     ), 
-     |(sign, value): (Option<i64>, i64)| { sign.unwrap_or(1) * value } 
+   named!(integer<&[u8], i64>, map!(
+     pair!(
+       opt!(sign),
+       map_res!(map_res!(digit, str::from_utf8), i64::from_str)
+     ),
+     |(sign, value): (Option<i64>, i64)| { sign.unwrap_or(1) * value }
    ));
    ```
 
@@ -333,16 +333,16 @@ This is the primary reason why I started to develop pom.
 
 | Basic Parsers  | Description                              |
 | -------------- | ---------------------------------------- |
-| empty()        | Always success, consume no input.        |
+| empty()        | Always succeeds, consume no input.        |
 | end()          | Match end of input.                      |
 | sym(t)        | Match a single terminal symbol *t*.      |
 | seq(s)         | Match sequence of symbols.               |
 | list(p,s)      | Match list of *p*, separated by *s*.     |
-| one_of(set)    | Sucess when current input symbol is one of the set. |
-| none_of(set)   | Sucess when current input symbol is none of the set. |
-| range(r)       | Sucess when the range contains current input symbol. |
-| is_a(predict)  | Sucess when predict return true on current input symbol. |
-| not_a(predict) | Sucess when predict return false on current input symbol. |
+| one_of(set)    | Success when current input symbol is one of the set. |
+| none_of(set)   | Success when current input symbol is none of the set. |
+| range(r)       | Success when the range contains current input symbol. |
+| is_a(predicate)  | Success when predicate return true on current input symbol. |
+| not_a(predicate) | Success when predicate return false on current input symbol. |
 | take(n)        | Read *n* symbols.                        |
 | skip(n)        | Skip *n* symbols.                        |
 | call(pf)       | Call a parser factory, can used to create recursive parsers. |
@@ -551,7 +551,7 @@ The first character indicates the number of `o`s to parse, then the number is us
 ## More examples
 
 - A [simple PDF parser](https://github.com/J-F-Liu/lopdf/blob/491dece5867a2b81878208bcb5e07ff1007c0d89/src/parser.rs), you can compare it with the equivalent [nom version](https://github.com/J-F-Liu/lopdf/blob/dff82c49fea9ac9ea23edf42ad80e480bd5edb46/src/parser.rs).
-- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/master/src/parser.rs) which can read length object when parsing stream object. 
+- A [complete PDF parser](https://github.com/J-F-Liu/lopdf/blob/master/src/parser.rs) which can read length object when parsing stream object.
 
 ## Conclusion
 

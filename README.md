@@ -33,16 +33,16 @@ And the code is easier to debug than macros.
 
 |Basic Parsers|Description|
 | --- | --- |
-|empty()|Always success, consume no input.|
+|empty()|Always succeeds, consume no input.|
 |end()  |Match end of input.|
 |sym(t)|Match a single terminal symbol *t*.|
 |seq(s) |Match sequence of symbols.|
 |list(p,s) |Match list of *p*, separated by *s*.|
-|one_of(set) |Sucess when current input symbol is one of the set.|
-|none_of(set)|Sucess when current input symbol is none of the set.|
-|range(r)    |Sucess when the range contains current input symbol.|
-|is_a(predict) |Sucess when predict return true on current input symbol.|
-|not_a(predict)|Sucess when predict return false on current input symbol.|
+|one_of(set) |Success when current input symbol is one of the set.|
+|none_of(set)|Success when current input symbol is none of the set.|
+|range(r)    |Success when the range contains current input symbol.|
+|is_a(predicate) |Success when predicate return true on current input symbol.|
+|not_a(predicate)|Success when predicate return false on current input symbol.|
 |take(n)|Read *n* symbols.|
 |skip(n)|Skip *n* symbols.|
 |call(pf)|Call a parser factory, can used to create recursive parsers.|
@@ -56,7 +56,7 @@ And the code is easier to debug than macros.
 | -p | Success when p success, doen't consume input. |
 | !p | Success when p fail, doen't consume input. |
 |p.opt()|Make parser optional. Returns an `Option`.|
-|p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times|
+|p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>`p.repeat(5)` repeat p exactly 5 times|
 |p.map(f)|Convert parser result to desired value.|
 |p.convert(f)|Convert parser result to desired value, fail in case of conversion error.|
 |p.pos() |Get input position after matching p.|
