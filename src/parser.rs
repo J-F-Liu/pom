@@ -191,12 +191,12 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 }
 
-/// Always success, consume no input.
+/// Always succeeds, consume no input.
 pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 	Parser::new(|_: &mut Input<I>| Ok(()))
 }
 
-/// Sucess when current input symbol equals t.
+/// Success when current input symbol equals `t`.
 pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + 'static
 {
@@ -217,7 +217,7 @@ pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when sequence of symbols match current input.
+/// Success when sequence of symbols matches current input.
 pub fn seq<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
 		  T: Train<I>
@@ -282,7 +282,7 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 	})
 }
 
-/// Sucess when current input symbol is one of the set.
+/// Success when current input symbol is one of the set.
 pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I>
@@ -305,7 +305,7 @@ pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when current input symbol is none of the set.
+/// Success when current input symbol is none of the set.
 pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  T: Train<I>
@@ -329,19 +329,19 @@ pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 }
 
 
-/// Sucess when predict return true on current input symbol.
-pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
+/// Success when predicate returns true on current input symbol.
+pub fn is_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			if predict(s) {
+			if predicate(s) {
 				input.advance();
 				Ok(s)
 			} else {
 				Err(Error::Mismatch {
-					message: format!("is_a predict failed on: {}", s),
+					message: format!("is_a predicate failed on: {}", s),
 					position: input.position(),
 				})
 			}
@@ -351,16 +351,16 @@ pub fn is_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when predict return false on current input symbol.
-pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
+/// Success when predicate returns false on current input symbol.
+pub fn not_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
 		  F: Fn(I) -> bool + 'a
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			if predict(s) {
+			if predicate(s) {
 				Err(Error::Mismatch {
-					message: format!("not_a predict failed on: {}", s),
+					message: format!("not_a predicate failed on: {}", s),
 					position: input.position(),
 				})
 			} else {
@@ -373,7 +373,7 @@ pub fn not_a<'a, I, F>(predict: F) -> Parser<'a, I, I>
 	})
 }
 
-/// Sucess when the range contains current input symbol.
+/// Success when the range contains current input symbol.
 pub fn range<'a, I, R>(set: R) -> Parser<'a, I, I>
 	where I: Copy + PartialOrd<I> + Display + Debug + 'static,
 		  R: RangeArgument<I> + Debug + 'a
