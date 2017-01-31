@@ -35,6 +35,11 @@ impl<T> RangeArgument<T> for RangeFull {
 	fn end(&self) -> Bound<T> { Unbounded }
 }
 
+impl RangeArgument<usize> for usize {
+	fn start(&self) -> Bound<usize> { Included(self) }
+	fn end(&self) -> Bound<usize> { Included(self) }
+}
+
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
 	method: Box<Fn(&mut Input<I>) -> Result<O> + 'a>,
@@ -137,6 +142,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 		})
 	}
 
+	/// `p.repeat(5)` repeat p exactly 5 times
 	/// `p.repeat(0..)` repeat p zero or more times
 	/// `p.repeat(1..)` repeat p one or more times
 	/// `p.repeat(1..4)` match p at least 1 and at most 3 times
@@ -148,12 +154,17 @@ impl<'a, I, O> Parser<'a, I, O> {
 		Parser::new(move |input: &mut Input<I>| {
 			let start_pos = input.position();
 			let mut items = vec![];
-			while let Ok(item) = self.parse(input) {
-				items.push(item);
+			loop {
 				match range.end() {
 					Included(&end) => if items.len() >= end { break; },
-					Excluded(&end) => if items.len() >= end - 1 { break; },
-					Unbounded => continue,
+					Excluded(&end) => if items.len() + 1 >= end { break; },
+					Unbounded => (),
+				}
+
+				if let Ok(item) = self.parse(input) {
+					items.push(item)
+				} else {
+					break;
 				}
 			}
 			if let Included(&start) = range.start() {
@@ -662,5 +673,117 @@ mod tests {
 		// });
 		let output = parser.parse(&mut input);
 		assert_eq!(output, Ok( (vec![b'o';5], vec![b'o';3]) ));
+	}
+
+	#[test]
+	fn repeat_at_least() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(1..2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(1..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(0..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'y').repeat(0..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'y').repeat(1..);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err());
+		}
+
+		{
+			let parser = sym(b'x').repeat(10..);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err());
+		}
+	}
+
+	#[test]
+	fn repeat_up_to() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(..2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..4);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..0);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..10);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+	}
+
+
+	#[test]
+	fn repeat_exactly() {
+		let input = DataInput::new(b"xxxooo");
+
+		{
+			let parser = sym(b'x').repeat(0);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(1);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x';1]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(2);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 2]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(3);
+			let output = parser.parse(&mut input.clone());
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(4);
+			let output = parser.parse(&mut input.clone());
+			assert!(output.is_err())
+		}
 	}
 }
