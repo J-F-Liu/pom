@@ -17,6 +17,7 @@ pub trait Input<T> where T: Copy {
 }
 
 /// Wrap &[u8] or &[char] as input to parser.
+#[derive(Debug, Clone)]
 pub struct DataInput<'a, T: 'a> {
 	pub data: &'a [T],
 	pub position: usize,
@@ -54,6 +55,7 @@ impl<'a, T: Copy> Input<T> for DataInput<'a, T> {
 }
 
 /// Wrap &str as input to parser.
+#[derive(Debug, Clone)]
 pub struct TextInput<'a> {
 	pub text: &'a str,
 	pub position: usize,
