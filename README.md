@@ -49,6 +49,7 @@ And the code is easier to debug than macros.
 
 |Parser Combinators|Description|
 | --- | --- |
+| p | q | Match p or q, return result of the first success. |
 | p + q | Match p and q, if both success return a pair of results. |
 | p - q | Match p and q, if both success return result of p. |
 | p * q | Match p and q, if both success return result of q. |
