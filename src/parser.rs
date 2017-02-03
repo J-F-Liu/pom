@@ -229,9 +229,9 @@ pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 }
 
 /// Success when sequence of symbols matches current input.
-pub fn seq<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, Vec<I>>
+pub fn seq<'a, I, T>(train: &'static T) -> Parser<'a, I, Vec<I>>
 	where I: Copy + PartialEq + Display + 'static,
-		  T: Train<I>
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		let tag = train.knots();
@@ -294,9 +294,9 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 }
 
 /// Success when current input symbol is one of the set.
-pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
+pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I>
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -317,9 +317,9 @@ pub fn one_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
 }
 
 /// Success when current input symbol is none of the set.
-pub fn none_of<'a, I, T: ?Sized>(train: &'static T) -> Parser<'a, I, I>
+pub fn none_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I>
+		  T: Train<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
