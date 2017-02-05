@@ -7,7 +7,6 @@ use std::io::Read;
 
 extern crate pom;
 use pom::DataInput;
-use pom::Input;
 
 #[path = "../examples/json.rs"]
 mod json;
@@ -18,9 +17,8 @@ fn json_byte(b: &mut Bencher) {
 	let mut data = Vec::new();
 	file.read_to_end(&mut data).unwrap();
 
-	let mut input = DataInput::new(&data);
 	b.iter(|| {
-		input.jump_to(0);
+		let mut input = DataInput::new(&data);
 		json::json().parse(&mut input).ok();
 	});
 }
