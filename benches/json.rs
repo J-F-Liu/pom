@@ -1,4 +1,5 @@
 #![feature(test)]
+#![feature(conservative_impl_trait)]
 extern crate test;
 use test::Bencher;
 
@@ -6,7 +7,7 @@ use std::fs::File;
 use std::io::Read;
 
 extern crate pom;
-use pom::DataInput;
+use pom::parser::Parser;
 
 #[path = "../examples/json.rs"]
 mod json;
@@ -18,7 +19,6 @@ fn json_byte(b: &mut Bencher) {
 	file.read_to_end(&mut data).unwrap();
 
 	b.iter(|| {
-		let mut input = DataInput::new(&data);
-		json::json().parse(&mut input).ok();
+		json::json().parse(&data, 0).ok();
 	});
 }
