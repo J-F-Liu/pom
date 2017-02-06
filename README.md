@@ -26,8 +26,12 @@ A parser combinator is a higher-order function that accepts several parsers as i
 Parser combinators enable a recursive descent parsing strategy that facilitates modular piecewise construction and testing.
 
 Parsers built using combinators are straightforward to construct, readable, modular, well-structured and easily maintainable.
-With operator overloading, a parser combinator can take the form of an infix operator, used to glue different parsers to form a complete rule. Parser combinators thereby enable parsers to be defined in an embedded style, in code which is similar in structure to the rules of the formal grammar.
+With operator overloading, a parser combinator can take the form of an infix operator, used to glue different parsers to form a complete rule.
+Parser combinators thereby enable parsers to be defined in an embedded style, in code which is similar in structure to the rules of the formal grammar.
 And the code is easier to debug than macros.
+
+The main advantage is that you don't need to go through any kind of code generation step, you're always using the vanilla language underneath.
+Aside from build issues (and the usual issues around error messages and debuggability, which in fairness are about as bad with macros as with code generation), it's usually easier to freely intermix grammar expressions and plain code.
 
 ## List of predefined parsers and combinators
 
@@ -73,10 +77,10 @@ For example, `A * B * C - D + E - F` will return the results of C and E as a pai
 ## Example code
 ```rust
 extern crate pom;
-use pom::{Input};
+use pom::DataInput;
 use pom::parser::*;
 
-let mut input = Input::new(b"abcde");
+let mut input = DataInput::new(b"abcde");
 let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
 let output = parser.parse(&mut input);
 assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
