@@ -2,8 +2,8 @@
 
 extern crate pom;
 use pom::char_class::hex_digit;
-use pom::parser::*;
-use pom::Result;
+use pom::combinator::*;
+use pom::{Parser, Result};
 
 use std::str::{self, FromStr};
 use std::char::{decode_utf16, REPLACEMENT_CHARACTER};
@@ -20,58 +20,55 @@ pub enum JsonValue {
 	Object(HashMap<String,JsonValue>)
 }
 
-fn space<'a>() -> impl Parser<'a, u8, ()> {
-	discard(repeat(one_of(b" \t\r\n"), 0..))
+fn space<'a>() -> Combinator<impl Parser<'a, u8, ()>> {
+	one_of(b" \t\r\n").repeat(0..).discard()
 }
 
-fn number<'a>() -> impl Parser<'a, u8, f64> {
-	let integer = Alt(discard((one_of(b"123456789"), repeat(one_of(b"0123456789"), 0..))), discard(sym(b'0')));
-	let frac = (sym(b'.'), repeat(one_of(b"0123456789"), 1..));
-	let exp = (one_of(b"eE"), opt(one_of(b"+-")), repeat(one_of(b"0123456789"), 1..));
-	let number = (opt(sym(b'-')), integer, opt(frac), opt(exp));
-	convert(collect(number), |v|f64::from_str(str::from_utf8(v).unwrap()))
+fn number<'a>() -> Combinator<impl Parser<'a, u8, f64>> {
+	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | sym(b'0');
+	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
+	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
+	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
+	number.collect().convert(|v|str::from_utf8(v)).convert(|s|f64::from_str(s))
 }
 
-fn string<'a>() -> impl Parser<'a, u8, String> {
-	let special_char = Alt3(
-		[sym(b'\\'), sym(b'/'), sym(b'"')],
-		Alt(map(sym(b'b'), |_|b'\x08'), map(sym(b'f'), |_|b'\x0C')),
-		Alt3(map(sym(b'n'), |_|b'\n'), map(sym(b'r'), |_|b'\r'), map(sym(b't'), |_|b'\t'))
-	);
-	let escape_sequence = map((sym(b'\\'), special_char), |(_, c)|c);
-	let char_string = convert(repeat(Alt(none_of(b"\\\""), escape_sequence), 1..), |bytes|String::from_utf8(bytes));
-	// let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4..5).convert(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16));
-	// let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
-	// let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
-	// string.map(|strings|strings.concat())
-	map((sym(b'"'), char_string, sym(b'"')), |(_, v, _)|v)
+fn string<'a>() -> Combinator<impl Parser<'a, u8, String>> {
+	let special_char = sym(b'\\') | sym(b'/') | sym(b'"')
+		| sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
+		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
+	let escape_sequence = sym(b'\\') * special_char;
+	let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(|bytes|String::from_utf8(bytes));
+	let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4..5).convert(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16));
+	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
+	let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
+	string.map(|strings|strings.concat())
 }
 
-fn array<'a>() -> impl Parser<'a, u8, Vec<JsonValue>> {
-	let elems = list(value, (sym(b','), space()));
-	map((sym(b'['), space(), elems, sym(b']')), |(_, _, v, _)|v)
+fn array<'a>() -> Combinator<impl Parser<'a, u8, Vec<JsonValue>>> {
+	let elems = list(call(value), sym(b',') + space());
+	sym(b'[') * space() * elems - sym(b']')
 }
 
-fn object<'a>() -> impl Parser<'a, u8, HashMap<String, JsonValue>> {
-	let member = map((string(), (space(), sym(b':'), space()), value), |(k, _, v)|(k, v));
-	let members = list(member, (sym(b','), space()));
-	let obj = (sym(b'{'), space(), members, sym(b'}'));
-	map(obj, |(_, _, members, _)|members.into_iter().collect::<HashMap<_,_>>())
+fn object<'a>() -> Combinator<impl Parser<'a, u8, HashMap<String, JsonValue>>> {
+	let member = string() - space() - sym(b':') - space() + call(value);
+	let members = list(member, sym(b',') + space());
+	let obj = sym(b'{') * space() * members - sym(b'}');
+	obj.map(|members|members.into_iter().collect::<HashMap<_,_>>())
 }
 
-fn value<'a>(input: &'a [u8], start: usize) -> Result<(JsonValue, usize)> {
-	map((
-		Alt3(
-		  Alt3(map(seq(b"null"), |_|JsonValue::Null), map(seq(b"true"), |_|JsonValue::Bool(true)), map(seq(b"false"), |_|JsonValue::Bool(false))),
-		  Alt(map(number(), |num|JsonValue::Num(num)), map(string(), |text|JsonValue::Str(text))),
-		  Alt(map(array(), |arr|JsonValue::Array(arr)), map(object(), |obj|JsonValue::Object(obj)))
-		),
-		space()),
-	|(v, _)|v).parse(input, start)
+fn value<'a>() -> Combinator<impl Parser<'a, u8, JsonValue>> {
+	( seq(b"null").map(|_|JsonValue::Null)
+	| seq(b"true").map(|_|JsonValue::Bool(true))
+	| seq(b"false").map(|_|JsonValue::Bool(false))
+	| number().map(|num|JsonValue::Num(num))
+	| string().map(|text|JsonValue::Str(text))
+	| array().map(|arr|JsonValue::Array(arr))
+	| object().map(|obj|JsonValue::Object(obj))
+	) - space()
 }
 
-pub fn json<'a>() -> impl Parser<'a, u8, JsonValue> {
-	map((space(), value, end()), |(_, v, _)|v)
+pub fn json<'a>() -> Combinator<impl Parser<'a, u8, JsonValue>> {
+	space() * value() - end()
 }
 
 #[allow(dead_code)]
@@ -89,8 +86,9 @@ fn main() {
 			},
 			"Animated" : false,
 			"IDs": [116, 943, 234, 38793]
-		}
+		},
+		"escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
 	}"#;
 
-	println!("{:?}", json().parse(test, 0));
+	println!("{:?}", json().parse(test));
 }
