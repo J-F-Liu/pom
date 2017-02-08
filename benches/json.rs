@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::Read;
 
 extern crate pom;
-use pom::parser::Parser;
+use pom::Parser;
 
 #[path = "../examples/json.rs"]
 mod json;
@@ -19,6 +19,6 @@ fn json_byte(b: &mut Bencher) {
 	file.read_to_end(&mut data).unwrap();
 
 	b.iter(|| {
-		json::json().parse(&data, 0).ok();
+		json::json().parse(&data).ok();
 	});
 }

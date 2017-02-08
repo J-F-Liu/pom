@@ -1,25 +1,25 @@
+#![feature(conservative_impl_trait)]
 extern crate pom;
+use pom::Parser;
+use pom::combinator::*;
 
-use pom::DataInput;
-use pom::parser::*;
-
-fn spaces() -> Parser<'static, u8, ()> {
+fn spaces<'a>() -> Combinator<impl Parser<'a, u8, Output=()>> {
 	one_of(b" ").repeat(1..).discard()
 }
 
-fn works() -> Parser<'static, u8, Vec<u8>> {
+fn works<'a>() -> Combinator<impl Parser<'a, u8, Output=Vec<u8>>> {
 	list(one_of(b"abc"), spaces() * seq(b"and") - spaces())
 }
 
-fn dangle() -> Parser<'static, u8, (Vec<u8>, Vec<u8>)> {
+fn dangle<'a>() -> Combinator<impl Parser<'a, u8, Output=(Vec<u8>, &'a [u8])>> {
 	list(one_of(b"abc"), spaces() * seq(b"and") - spaces()) + seq(b" and")
 }
 
 #[test]
 fn test_list() {
-	let mut one = DataInput::new(b"a and b and c");
-	assert_eq!(works().parse(&mut one), Ok(vec![b'a', b'b', b'c']));
+	let one = b"a and b and c";
+	assert_eq!(works().parse(one), Ok(vec![b'a', b'b', b'c']));
 
-	let mut two = DataInput::new(b"a and b and c and ");
-	assert_eq!(dangle().parse(&mut two), Ok((vec![b'a', b'b', b'c'], vec![b' ', b'a', b'n', b'd'])));
+	let two = b"a and b and c and ";
+	assert_eq!(dangle().parse(two), Ok((vec![b'a', b'b', b'c'], &[b' ', b'a', b'n', b'd'][..])));
 }
