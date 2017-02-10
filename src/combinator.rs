@@ -2,6 +2,7 @@ use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg};
 use super::{Result, Error};
 use parser::Parser;
+use set::Set;
 use range::RangeArgument;
 use range::Bound::*;
 
@@ -219,8 +220,8 @@ pub fn list<'a, I: 'a, O, U, P, S>(combinator: Combinator<P>, separator: Combina
 }
 
 /// Success when current input symbol is one of the set.
-pub fn one_of<'a, I: 'a>(set: &'a [I]) -> Combinator<impl Parser<'a, I, Output=I>>
-	where I: Copy + PartialEq + Debug
+pub fn one_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=I>>
+	where I: Copy + PartialEq + Debug, S: Set<I> + Debug + ?Sized
 {
 	Combinator(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
@@ -239,8 +240,8 @@ pub fn one_of<'a, I: 'a>(set: &'a [I]) -> Combinator<impl Parser<'a, I, Output=I
 }
 
 /// Success when current input symbol is none of the set.
-pub fn none_of<'a, I: 'a>(set: &'a [I]) -> Combinator<impl Parser<'a, I, Output=I>>
-	where I: Copy + PartialEq + Debug
+pub fn none_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=I>>
+	where I: Copy + PartialEq + Debug, S: Set<I> + Debug + ?Sized
 {
 	Combinator(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
@@ -296,42 +297,6 @@ pub fn not_a<'a, I: 'a, F>(predicate: F) -> Combinator<impl Parser<'a, I, Output
 			}
 		} else {
 			Err(Error::Incomplete)
-		}
-	})
-}
-
-/// Success when the range contains current input symbol.
-pub fn range<'a, I: 'a, R>(set: R) -> Combinator<impl Parser<'a, I, Output=I>>
-	where I: Copy + PartialOrd<I> + Display + Debug,
-		  R: RangeArgument<I> + Debug
-{
-	Combinator(move |input: &'a [I], pos: usize| {
-		if let Some(&s) = input.get(pos) {
-			let meet_start = match set.start() {
-				Included(&start) => s >= start,
-				Excluded(&start) => s > start,
-				Unbounded => true,
-			};
-			if !meet_start {
-				return Err(Error::Mismatch {
-					message: format!("expect range: {:?}, found: {}", set, s),
-					position: pos,
-				});
-			}
-			let meet_end = match set.end() {
-				Included(&end) => s <= end,
-				Excluded(&end) => s < end,
-				Unbounded => true,
-			};
-			if !meet_end {
-				return Err(Error::Mismatch {
-					message: format!("expect range: {:?}, found: {}", set, s),
-					position: pos,
-				});
-			}
-			return Ok((s, pos + 1));
-		} else {
-			return Err(Error::Incomplete);
 		}
 	})
 }
@@ -582,13 +547,20 @@ mod tests {
 			Empty,
 			Group(Box<Expr>)
 		}
+		// fn expr<'a>() -> Combinator<impl Parser<'a, u8, Output=Expr>> {
+		// 	sym(b'(') * call(expr).map(|e|Expr::Group(Box::new(e))) - sym(b')')
+		// 	 | empty().map(|_|Expr::Empty)
+		// }
+		// let parser = call(expr);
+
 		fn expr<'a>(input: &'a [u8], start: usize) -> Result<(Expr, usize)> {
 			(sym(b'(') * comb(expr).map(|e|Expr::Group(Box::new(e))) - sym(b')')
 			 | empty().map(|_|Expr::Empty)
 			).0.parse(input, start)
 		}
-		let input = b"(())";
 		let parser = comb(expr);
+
+		let input = b"(())";
 		let output = parser.parse(input);
 		assert_eq!(output, Ok( Expr::Group(Box::new(Expr::Group(Box::new(Expr::Empty)))) ));
 	}

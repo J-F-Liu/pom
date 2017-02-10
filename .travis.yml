@@ -13,7 +13,8 @@ before_script:
 # the main build
 script:
   - |
-      travis-cargo build
+      travis-cargo build &&
+      travis-cargo test
 
 env:
   global:

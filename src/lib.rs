@@ -1,7 +1,9 @@
 #![feature(conservative_impl_trait)]
+#![feature(range_contains)]
 
 mod result;
-mod range;
+pub mod range;
+pub mod set;
 
 /// Constains predefined parsers and combinators.
 pub mod parser;
