@@ -40,12 +40,12 @@ And the code is easier to debug than macros.
 |list(p,s) |Match list of *p*, separated by *s*.|
 |one_of(set) |Success when current input symbol is one of the set.|
 |none_of(set)|Success when current input symbol is none of the set.|
-|range(r)    |Success when the range contains current input symbol.|
 |is_a(predicate) |Success when predicate return true on current input symbol.|
 |not_a(predicate)|Success when predicate return false on current input symbol.|
 |take(n)|Read *n* symbols.|
 |skip(n)|Skip *n* symbols.|
 |call(pf)|Call a parser factory, can used to create recursive parsers.|
+|comb(p)|Wrap parser as a combinator.|
 
 |Parser Combinators|Description|
 | --- | --- |
