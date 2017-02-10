@@ -73,101 +73,106 @@ For example, `A * B * C - D + E - F` will return the results of C and E as a pai
 ## Example code
 ```rust
 extern crate pom;
-use pom::{Input};
-use pom::parser::*;
+use pom::combinator::*;
 
-let mut input = Input::new(b"abcde");
-let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
-let output = parser.parse(&mut input);
-assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
+let input = b"abcde";
+let parser = sym(b'a') * one_of(b"ab") - sym(b'c') + seq(b"de");
+let output = parser.parse(input);
+assert_eq!(output, Ok( (b'b', &b"de"[..]) ) );
 ```
 
 ### Example JSON parser
 ```rust
-extern crate pom;
-use pom::{Parser, DataInput};
-use pom::parser::*;
+#![feature(conservative_impl_trait)]
 
-use std::str::FromStr;
+extern crate pom;
+use pom::char_class::hex_digit;
+use pom::combinator::*;
+use pom::Parser;
+
+use std::str::{self, FromStr};
+use std::char::{decode_utf16, REPLACEMENT_CHARACTER};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue {
 	Null,
 	Bool(bool),
-	Str(String),
-	Num(f64),
+	Number(f64),
+	String(String),
 	Array(Vec<JsonValue>),
 	Object(HashMap<String,JsonValue>)
 }
 
-fn space() -> Parser<u8, ()> {
+fn space<'a>() -> Combinator<impl Parser<'a, u8, Output=()>> {
 	one_of(b" \t\r\n").repeat(0..).discard()
 }
 
-fn number() -> Parser<u8, f64> {
+fn number<'a>() -> Combinator<impl Parser<'a, u8, Output=f64>> {
 	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | sym(b'0');
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().convert(|v|String::from_utf8(v)).convert(|s|f64::from_str(&s))
+	number.collect().convert(|v|f64::from_str(str::from_utf8(v).unwrap()))
 }
 
-fn string() -> Parser<u8, String> {
+fn string<'a>() -> Combinator<impl Parser<'a, u8, Output=String>> {
 	let special_char = sym(b'\\') | sym(b'/') | sym(b'"')
 		| sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
 		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
 	let escape_sequence = sym(b'\\') * special_char;
-	let string = sym(b'"') * (none_of(b"\\\"") | escape_sequence).repeat(0..) - sym(b'"');
-	string.convert(|v|String::from_utf8(v))
+	let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(|bytes|String::from_utf8(bytes));
+	let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4).convert(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16));
+	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
+	let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
+	string.map(|strings|strings.concat())
 }
 
-fn array() -> Parser<u8, Vec<JsonValue>> {
-	let elems = list(call(value), sym(b',') * space());
+fn array<'a>() -> Combinator<impl Parser<'a, u8, Output=Vec<JsonValue>>> {
+	let elems = list(comb(value), sym(b',') + space());
 	sym(b'[') * space() * elems - sym(b']')
 }
 
-fn object() -> Parser<u8, HashMap<String, JsonValue>> {
-	let member = string() - space() - sym(b':') - space() + call(value);
-	let members = list(member, sym(b',') * space());
+fn object<'a>() -> Combinator<impl Parser<'a, u8, Output=HashMap<String, JsonValue>>> {
+	let member = string() - space() - sym(b':') - space() + comb(value);
+	let members = list(member, sym(b',') + space());
 	let obj = sym(b'{') * space() * members - sym(b'}');
 	obj.map(|members|members.into_iter().collect::<HashMap<_,_>>())
 }
 
-fn value() -> Parser<u8, JsonValue> {
-	( seq(b"null").map(|_|JsonValue::Null)
+fn value<'a>(input: &'a [u8], start: usize) -> pom::Result<(JsonValue, usize)> {
+	(( seq(b"null").map(|_|JsonValue::Null)
 	| seq(b"true").map(|_|JsonValue::Bool(true))
 	| seq(b"false").map(|_|JsonValue::Bool(false))
-	| number().map(|num|JsonValue::Num(num))
-	| string().map(|text|JsonValue::Str(text))
+	| number().map(|num|JsonValue::Number(num))
+	| string().map(|text|JsonValue::String(text))
 	| array().map(|arr|JsonValue::Array(arr))
 	| object().map(|obj|JsonValue::Object(obj))
-	) - space()
+	) - space()).0.parse(input, start)
 }
 
-pub fn json() -> Parser<u8, JsonValue> {
-	space() * value() - end()
+pub fn json<'a>() -> Combinator<impl Parser<'a, u8, Output=JsonValue>> {
+	space() * comb(value) - end()
 }
 
 fn main() {
 	let test = br#"
 	{
-        "Image": {
-            "Width":  800,
-            "Height": 600,
-            "Title":  "View from 15th Floor",
-            "Thumbnail": {
-                "Url":    "http://www.example.com/image/481989943",
-                "Height": 125,
-                "Width":  100
-            },
-            "Animated" : false,
-            "IDs": [116, 943, 234, 38793]
-        }
-    }"#;
-
-	let mut input = DataInput::new(test);
-	println!("{:?}", json().parse(&mut input));
+		"Image": {
+			"Width":  800,
+			"Height": 600,
+			"Title":  "View from 15th Floor",
+			"Thumbnail": {
+				"Url":    "http://www.example.com/image/481989943",
+				"Height": 125,
+				"Width":  100
+			},
+			"Animated" : false,
+			"IDs": [116, 943, 234, 38793]
+		},
+		"escaped characters": "\u2192\uD83D\uDE00\"\t\uD834\uDD1E"
+	}"#;
+	println!("{:?}", json().parse(test));
 }
 ```
 You can run this example with the following command:
@@ -179,6 +184,6 @@ cargo run --example json
 
 | Parser           | Time to parse the same JSON file |
 |------------------|----------------------------------|
-| pom: json_byte   | 655,401 ns/iter (+/- 28,195)     |
+| pom: json_byte   | 380,294 ns/iter (+/- 21,716)     |
 | pom: json_char   | 721,769 ns/iter (+/- 21,932)     |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |

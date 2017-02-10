@@ -14,8 +14,8 @@ use std::collections::HashMap;
 pub enum JsonValue {
 	Null,
 	Bool(bool),
-	Str(String),
-	Num(f64),
+	Number(f64),
+	String(String),
 	Array(Vec<JsonValue>),
 	Object(HashMap<String,JsonValue>)
 }
@@ -61,8 +61,8 @@ fn value<'a>(input: &'a [u8], start: usize) -> pom::Result<(JsonValue, usize)> {
 	(( seq(b"null").map(|_|JsonValue::Null)
 	| seq(b"true").map(|_|JsonValue::Bool(true))
 	| seq(b"false").map(|_|JsonValue::Bool(false))
-	| number().map(|num|JsonValue::Num(num))
-	| string().map(|text|JsonValue::Str(text))
+	| number().map(|num|JsonValue::Number(num))
+	| string().map(|text|JsonValue::String(text))
 	| array().map(|arr|JsonValue::Array(arr))
 	| object().map(|obj|JsonValue::Object(obj))
 	) - space()).0.parse(input, start)
