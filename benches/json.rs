@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::Read;
 
 extern crate pom;
-use pom::Parser;
 
 #[path = "../examples/json.rs"]
 mod json;
