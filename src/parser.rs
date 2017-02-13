@@ -347,43 +347,6 @@ pub fn not_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 	})
 }
 
-/// Success when the range contains current input symbol.
-pub fn range<'a, I, R>(set: R) -> Parser<'a, I, I>
-	where I: Copy + PartialOrd<I> + Display + Debug + 'static,
-		  R: RangeArgument<I> + Debug + 'a
-{
-	Parser::new(move |input: &mut Input<I>| {
-		if let Some(s) = input.current() {
-			let meet_start = match set.start() {
-				Included(&start) => s >= start,
-				Excluded(&start) => s > start,
-				Unbounded => true,
-			};
-			if !meet_start {
-				return Err(Error::Mismatch {
-					message: format!("expect range: {:?}, found: {}", set, s),
-					position: input.position(),
-				});
-			}
-			let meet_end = match set.end() {
-				Included(&end) => s <= end,
-				Excluded(&end) => s < end,
-				Unbounded => true,
-			};
-			if !meet_end {
-				return Err(Error::Mismatch {
-					message: format!("expect range: {:?}, found: {}", set, s),
-					position: input.position(),
-				});
-			}
-			input.advance();
-			return Ok(s);
-		} else {
-			return Err(Error::Incomplete);
-		}
-	})
-}
-
 /// Read n symbols.
 pub fn take<'a, I>(n: usize) -> Parser<'a, I, Vec<I>>
 	where I: Copy + 'static
