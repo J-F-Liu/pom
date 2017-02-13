@@ -2,6 +2,7 @@ mod input;
 mod result;
 mod train;
 pub mod range;
+pub mod set;
 
 /// Constains predefined parsers and combinators.
 pub mod parser;

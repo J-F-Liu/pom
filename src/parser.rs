@@ -1,6 +1,7 @@
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg, Not};
 use super::{Result, Error, Input, Train};
+use set::Set;
 use range::RangeArgument;
 use range::Bound::*;
 
@@ -258,19 +259,18 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 }
 
 /// Success when current input symbol is one of the set.
-pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
+pub fn one_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I> + ?Sized
+		  S: Set<I> + Debug + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			let set = train.knots();
 			if set.contains(&s) {
 				input.advance();
 				Ok(s)
 			} else {
 				Err(Error::Mismatch {
-					message: format!("expect one of: {}, found: {}", train.to_str(), s),
+					message: format!("expect one of: {:?}, found: {}", set, s),
 					position: input.position(),
 				})
 			}
@@ -281,16 +281,15 @@ pub fn one_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
 }
 
 /// Success when current input symbol is none of the set.
-pub fn none_of<'a, I, T>(train: &'static T) -> Parser<'a, I, I>
+pub fn none_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  T: Train<I> + ?Sized
+		  S: Set<I> + Debug + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
-			let set = train.knots();
 			if set.contains(&s) {
 				Err(Error::Mismatch {
-					message: format!("expect none of: {}, found: {}", train.to_str(), s),
+					message: format!("expect none of: {:?}, found: {}", set, s),
 					position: input.position(),
 				})
 			} else {
