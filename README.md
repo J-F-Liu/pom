@@ -183,8 +183,8 @@ cargo run --example json
 
 | Parser           | Time to parse the same JSON file |
 |------------------|----------------------------------|
-| pom: json_byte   | 761,259 ns/iter (+/- 26,461)     |
-| pom: json_char   | 676,080 ns/iter (+/- 36,376)     |
+| pom: json_byte   | 621,319 ns/iter (+/- 20,318)     |
+| pom: json_char   | 627,110 ns/iter (+/- 11,463)     |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
 
 ## Releases

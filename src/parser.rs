@@ -261,7 +261,7 @@ pub fn list<'a, I, O, U>(parser: Parser<'a, I, O>, separator: Parser<'a, I, U>) 
 /// Success when current input symbol is one of the set.
 pub fn one_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  S: Set<I> + Debug + ?Sized
+		  S: Set<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
@@ -270,7 +270,7 @@ pub fn one_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 				Ok(s)
 			} else {
 				Err(Error::Mismatch {
-					message: format!("expect one of: {:?}, found: {}", set, s),
+					message: format!("expect one of: {}, found: {}", set.to_str(), s),
 					position: input.position(),
 				})
 			}
@@ -283,13 +283,13 @@ pub fn one_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 /// Success when current input symbol is none of the set.
 pub fn none_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 	where I: Copy + PartialEq + Display + Debug + 'static,
-		  S: Set<I> + Debug + ?Sized
+		  S: Set<I> + ?Sized
 {
 	Parser::new(move |input: &mut Input<I>| {
 		if let Some(s) = input.current() {
 			if set.contains(&s) {
 				Err(Error::Mismatch {
-					message: format!("expect none of: {:?}, found: {}", set, s),
+					message: format!("expect none of: {}, found: {}", set.to_str(), s),
 					position: input.position(),
 				})
 			} else {
