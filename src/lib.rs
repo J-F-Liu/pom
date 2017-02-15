@@ -16,5 +16,5 @@ pub use result::{Result, Error};
 pub use parser::Parser;
 
 // The following code is not accepted by today's compiler.
-// pub type Parser<'a, I, O> = combinator::Combinator<impl parser::Parser<'a, I, O>>;
+// pub type Parser<'a, I, O> = combinator::Combinator<impl parser::Parser<'a, I, Output=O>>;
 // pub type Parser<I, O> = for<'a> parser::Parser<'a, I, O>;

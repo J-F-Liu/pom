@@ -221,7 +221,7 @@ pub fn list<'a, I: 'a, O, U, P, S>(combinator: Combinator<P>, separator: Combina
 
 /// Success when current input symbol is one of the set.
 pub fn one_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=I>>
-	where I: Copy + PartialEq + Debug, S: Set<I> + Debug + ?Sized
+	where I: Copy + PartialEq + Debug, S: Set<I> + ?Sized
 {
 	Combinator(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
@@ -229,7 +229,7 @@ pub fn one_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=
 				Ok((*s, start + 1))
 			} else {
 				Err(Error::Mismatch {
-					message: format!("expect one of: {:?}, found: {:?}", set, s),
+					message: format!("expect one of: {}, found: {:?}", set.to_str(), s),
 					position: start,
 				})
 			}
@@ -241,13 +241,13 @@ pub fn one_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=
 
 /// Success when current input symbol is none of the set.
 pub fn none_of<'a, I: 'a, S>(set: &'a S) -> Combinator<impl Parser<'a, I, Output=I>>
-	where I: Copy + PartialEq + Debug, S: Set<I> + Debug + ?Sized
+	where I: Copy + PartialEq + Debug, S: Set<I> + ?Sized
 {
 	Combinator(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
 			if set.contains(&s) {
 				Err(Error::Mismatch {
-					message: format!("expect none of: {:?}, found: {:?}", set, s),
+					message: format!("expect none of: {}, found: {:?}", set.to_str(), s),
 					position: start,
 				})
 			} else {

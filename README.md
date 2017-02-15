@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom)
 [![Build Status](https://travis-ci.org/J-F-Liu/pom.png)](https://travis-ci.org/J-F-Liu/pom)
+[![Discord](https://img.shields.io/badge/discord-pom-red.svg)](https://discord.gg/CVy85pg)
 
 PEG parser combinators created using operator overloading without macros.
 
@@ -184,6 +185,6 @@ cargo run --example json
 
 | Parser           | Time to parse the same JSON file |
 |------------------|----------------------------------|
-| pom: json_byte   | 446,509 ns/iter (+/- 11,416)     |
-| pom: json_char   | 283,551 ns/iter (+/- 5,800)      |
+| pom: json_byte   | 302,920 ns/iter (+/- 7,976)      |
+| pom: json_char   | 243,248 ns/iter (+/- 9,011)      |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
