@@ -114,7 +114,7 @@ fn number() -> Parser<u8, f64> {
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().convert(|v|String::from_utf8(v)).convert(|s|f64::from_str(&s))
+	number.collect().convert(String::from_utf8).convert(|s|f64::from_str(&s))
 }
 
 fn string() -> Parser<u8, String> {
@@ -123,7 +123,7 @@ fn string() -> Parser<u8, String> {
 		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
 	let escape_sequence = sym(b'\\') * special_char;
 	let string = sym(b'"') * (none_of(b"\\\"") | escape_sequence).repeat(0..) - sym(b'"');
-	string.convert(|v|String::from_utf8(v))
+	string.convert(String::from_utf8)
 }
 
 fn array() -> Parser<u8, Vec<JsonValue>> {
