@@ -333,21 +333,21 @@ This is the primary reason why I started to develop pom.
 
 | Basic Parsers  | Description                              |
 | -------------- | ---------------------------------------- |
-| empty()        | Always succeeds, consume no input.        |
+| empty()        | Always succeeds, consume no input.       |
 | end()          | Match end of input.                      |
-| sym(t)        | Match a single terminal symbol *t*.      |
+| sym(t)        | Match a single terminal symbol *t*.       |
 | seq(s)         | Match sequence of symbols.               |
 | list(p,s)      | Match list of *p*, separated by *s*.     |
 | one_of(set)    | Success when current input symbol is one of the set. |
 | none_of(set)   | Success when current input symbol is none of the set. |
-| range(r)       | Success when the range contains current input symbol. |
 | is_a(predicate)  | Success when predicate return true on current input symbol. |
 | not_a(predicate) | Success when predicate return false on current input symbol. |
 | take(n)        | Read *n* symbols.                        |
 | skip(n)        | Skip *n* symbols.                        |
 | call(pf)       | Call a parser factory, can used to create recursive parsers. |
+| comb(p)        | Wrap parser as a combinator.             |
 
-These are functions to create basic parsers.
+These are functions to create basic parser combinators.
 
 
 | Parser Combinators | Description                              |
@@ -368,7 +368,7 @@ These are functions to create basic parsers.
 | p.discard()        | Discard parser output.                   |
 | p.name(_)          | Give parser a name to identify parsing errors. |
 
-These are operations to create new parsers based on other parsers. The choice of operators is established by their operator precedence, arity and "meaning".
+These are operations to create new parser combinators based on other parser combinators. The choice of operators is established by their operator precedence, arity and "meaning".
 
 Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
 For example, `A * B * C - D + E - F` will return the results of C and E as a pair.
@@ -404,11 +404,11 @@ Let me explain the parser combinators in more detail by creating a JSON parser. 
 
 ```rust
 extern crate pom;
-use pom::{Parser, DataInput};
 use pom::char_class::hex_digit;
-use pom::parser::*;
+use pom::combinator::*;
+use pom::Parser;
 
-use std::str::FromStr;
+use std::str::{self, FromStr};
 use std::char::{decode_utf16, REPLACEMENT_CHARACTER};
 use std::collections::HashMap;
 
@@ -439,7 +439,7 @@ fn number() -> Parser<u8, f64> {
     let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
     let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
     let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-    number.collect().convert(|v|String::from_utf8(v)).convert(|s|f64::from_str(&s))
+    number.collect().convert(str::from_utf8).convert(f64::from_str)
 }
 ```
 
@@ -451,8 +451,8 @@ fn string() -> Parser<u8, String> {
         | sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
         | sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
     let escape_sequence = sym(b'\\') * special_char;
-    let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(|bytes|String::from_utf8(bytes));
-    let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4..5).convert(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16));
+    let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(String::from_utf8);
+    let utf16_char = seq(b"\\u") * is_a(hex_digit).repeat(4).convert(String::from_utf8).convert(|digits|u16::from_str_radix(&digits, 16));
     let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
     let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
     string.map(|strings|strings.concat())

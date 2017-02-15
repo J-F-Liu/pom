@@ -36,8 +36,8 @@ fn string<'a>() -> Combinator<impl Parser<'a, char, Output=String>> {
 		| sym('b').map(|_|'\x08') | sym('f').map(|_|'\x0C')
 		| sym('n').map(|_|'\n') | sym('r').map(|_|'\r') | sym('t').map(|_|'\t');
 	let escape_sequence = sym('\\') * special_char;
-	let char_string = (none_of("\\\"") | escape_sequence).repeat(1..).map(|bytes|String::from_iter(bytes));
-	let utf16_char = sym('\\') * sym('u') * is_a(|c:char|c.is_digit(16)).repeat(4).convert(|digits|u16::from_str_radix(&String::from_iter(digits), 16));
+	let char_string = (none_of("\\\"") | escape_sequence).repeat(1..).map(String::from_iter);
+	let utf16_char = comb("\\u") * is_a(|c:char|c.is_digit(16)).repeat(4).map(String::from_iter).convert(|digits|u16::from_str_radix(&digits, 16));
 	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
 	let string = sym('"') * (char_string | utf16_string).repeat(0..) - sym('"');
 	string.map(|strings|strings.concat())

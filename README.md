@@ -114,7 +114,7 @@ fn number<'a>() -> Combinator<impl Parser<'a, u8, Output=f64>> {
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().convert(|v|f64::from_str(str::from_utf8(v).unwrap()))
+	number.collect().convert(str::from_utf8).convert(f64::from_str)
 }
 
 fn string<'a>() -> Combinator<impl Parser<'a, u8, Output=String>> {
@@ -122,8 +122,8 @@ fn string<'a>() -> Combinator<impl Parser<'a, u8, Output=String>> {
 		| sym(b'b').map(|_|b'\x08') | sym(b'f').map(|_|b'\x0C')
 		| sym(b'n').map(|_|b'\n') | sym(b'r').map(|_|b'\r') | sym(b't').map(|_|b'\t');
 	let escape_sequence = sym(b'\\') * special_char;
-	let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(|bytes|String::from_utf8(bytes));
-	let utf16_char = sym(b'\\') * sym(b'u') * is_a(hex_digit).repeat(4).convert(|digits|u16::from_str_radix(&String::from_utf8(digits).unwrap(), 16));
+	let char_string = (none_of(b"\\\"") | escape_sequence).repeat(1..).convert(String::from_utf8);
+	let utf16_char = seq(b"\\u") * is_a(hex_digit).repeat(4).convert(String::from_utf8).convert(|digits|u16::from_str_radix(&digits, 16));
 	let utf16_string = utf16_char.repeat(1..).map(|chars|decode_utf16(chars).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)).collect::<String>());
 	let string = sym(b'"') * (char_string | utf16_string).repeat(0..) - sym(b'"');
 	string.map(|strings|strings.concat())
