@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom)
 [![Build Status](https://travis-ci.org/J-F-Liu/pom.png)](https://travis-ci.org/J-F-Liu/pom)
+[![Discord](https://img.shields.io/badge/discord-pom-red.svg)](https://discord.gg/CVy85pg)
 
 PEG parser combinators created using operator overloading without macros.
 
@@ -44,7 +45,6 @@ Aside from build issues (and the usual issues around error messages and debuggab
 |list(p,s) |Match list of *p*, separated by *s*.|
 |one_of(set) |Success when current input symbol is one of the set.|
 |none_of(set)|Success when current input symbol is none of the set.|
-|range(r)    |Success when the range contains current input symbol.|
 |is_a(predicate) |Success when predicate return true on current input symbol.|
 |not_a(predicate)|Success when predicate return false on current input symbol.|
 |take(n)|Read *n* symbols.|
@@ -186,3 +186,7 @@ cargo run --example json
 | pom: json_byte   | 761,259 ns/iter (+/- 26,461)     |
 | pom: json_char   | 676,080 ns/iter (+/- 36,376)     |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
+
+## Releases
+
+If you need to stick with Rust stable, use pom 1.0.0, otherwise you can try pom 2.0.0-alpha.
