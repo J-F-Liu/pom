@@ -46,6 +46,19 @@ impl<P> Combinator<P> {
 		})
 	}
 
+	/// Cache parser output result.
+	pub fn cache<'a, I: 'a, O: Clone>(self) -> Combinator<impl Parser<'a, I, Output=O>>
+		where P: Parser<'a, I, Output=O>
+	{
+		use std::cell::RefCell;
+		use std::collections::HashMap;
+		let results = RefCell::new(HashMap::new());
+		Combinator(move |input: &'a [I], start: usize| {
+			let key = (start, format!("{:p}", &self.0));
+			results.borrow_mut().entry(key).or_insert(self.0.parse(input, start)).clone()
+		})
+	}
+
 	/// Get input position after matching parser.
 	pub fn pos<'a, I: 'a, O>(self) -> Combinator<impl Parser<'a, I, Output=usize>>
 		where P: Parser<'a, I, Output=O>

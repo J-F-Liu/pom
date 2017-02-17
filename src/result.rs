@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 use std::error;
 
 /// Parser error.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Error {
 	Incomplete,
 	Mismatch { message: String, position: usize },
