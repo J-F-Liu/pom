@@ -106,13 +106,13 @@ impl<P> Combinator<P> {
 		where P: Parser<'a, I, Output=O>,
 			  R: RangeArgument<usize> + Debug + 'a
 	{
-		Combinator(move |input: &'a [I], start_pos: usize| {
+		Combinator(move |input: &'a [I], start: usize| {
 			let mut items = vec![];
-			let mut pos = start_pos;
+			let mut pos = start;
 			loop {
 				match range.end() {
-					Included(&end) => if items.len() >= end { break; },
-					Excluded(&end) => if items.len() + 1 >= end { break; },
+					Included(&max_count) => if items.len() >= max_count { break; },
+					Excluded(&max_count) => if items.len() + 1 >= max_count { break; },
 					Unbounded => (),
 				}
 
@@ -123,15 +123,52 @@ impl<P> Combinator<P> {
 					break;
 				}
 			}
-			if let Included(&start) = range.start() {
-				if items.len() < start {
+			if let Included(&min_count) = range.start() {
+				if items.len() < min_count {
 					return Err(Error::Mismatch {
-						message: format!("expect repeat at least {} times, found {} times", start, items.len()),
-						position: start_pos,
+						message: format!("expect repeat at least {} times, found {} times", min_count, items.len()),
+						position: start,
 					});
 				}
 			}
 			Ok((items, pos))
+		})
+	}
+
+	/// `p.many(5)` repeat p exactly 5 times
+	/// `p.many(0..)` repeat p zero or more times
+	/// `p.many(1..)` repeat p one or more times
+	/// `p.many(1..4)` match p at least 1 and at most 3 times
+	pub fn many<'a, I: 'a, O, R>(self, range: R) -> Combinator<impl Parser<'a, I, Output=&'a [I]>>
+		where P: Parser<'a, I, Output=O>,
+			  R: RangeArgument<usize> + Debug + 'a
+	{
+		Combinator(move |input: &'a [I], start: usize| {
+			let mut count = 0;
+			let mut pos = start;
+			loop {
+				match range.end() {
+					Included(&max_count) => if count >= max_count { break; },
+					Excluded(&max_count) => if count + 1 >= max_count { break; },
+					Unbounded => (),
+				}
+
+				if let Ok((_, item_pos)) = self.0.parse(input, pos) {
+					count += 1;
+					pos = item_pos;
+				} else {
+					break;
+				}
+			}
+			if let Included(&min_count) = range.start() {
+				if count < min_count {
+					return Err(Error::Mismatch {
+						message: format!("expect repeat at least {} times, found {} times", min_count, count),
+						position: start,
+					});
+				}
+			}
+			Ok((&input[start..pos], pos))
 		})
 	}
 
