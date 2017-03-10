@@ -354,11 +354,13 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, Vec<I>>
 	Parser::new(move |input: &mut Input<I>| {
 		let start = input.position();
 		let mut symbols = Vec::with_capacity(n);
-		while let Some(symbol) = input.current() {
-			input.advance();
-			symbols.push(symbol);
-			if symbols.len() == n {
-				break;
+		if n > 0 {
+			while let Some(symbol) = input.current() {
+				input.advance();
+				symbols.push(symbol);
+				if symbols.len() == n {
+					break;
+				}
 			}
 		}
 		if symbols.len() < n {
@@ -377,11 +379,13 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
 	Parser::new(move |input: &mut Input<I>| {
 		let start = input.position();
 		let mut count = 0;
-		while let Some(_) = input.current() {
-			input.advance();
-			count += 1;
-			if count == n {
-				break;
+		if n > 0 {
+			while let Some(_) = input.current() {
+				input.advance();
+				count += 1;
+				if count == n {
+					break;
+				}
 			}
 		}
 		if count < n {
