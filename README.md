@@ -58,8 +58,8 @@ Aside from build issues (and the usual issues around error messages and debuggab
 | p - q | Match p and q, if both success return result of p. |
 | p * q | Match p and q, if both success return result of q. |
 | p >> q | Parse p and get result P, then parse and return result of q(P). |
-| -p | Success when p success, doen't consume input. |
-| !p | Success when p fail, doen't consume input. |
+| -p | Success when p success, doesn't consume input. |
+| !p | Success when p fail, doesn't consume input. |
 |p.opt()|Make parser optional. Returns an `Option`.|
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>`p.repeat(5)` repeat p exactly 5 times|
 |p.map(f)|Convert parser result to desired value.|
