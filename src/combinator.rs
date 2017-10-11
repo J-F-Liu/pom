@@ -514,10 +514,10 @@ impl<'a, I, O, P: Parser<'a, I, Output=O>> Parser<'a, I> for And<P> {
 
 /// And predicate
 impl<P> Neg for Combinator<P> {
-	type Output = Combinator<And<Self>>;
+	type Output = Combinator<And<P>>;
 
 	fn neg(self) -> Self::Output {
-		Combinator(And(self))
+		Combinator(And(self.0))
 	}
 }
 
@@ -537,10 +537,10 @@ impl<'a, I, O, P: Parser<'a, I, Output=O>> Parser<'a, I> for Not<P> {
 
 /// Not predicate
 impl<P> ::std::ops::Not for Combinator<P> {
-	type Output = Combinator<Not<Self>>;
+	type Output = Combinator<Not<P>>;
 
 	fn not(self) -> Self::Output {
-		Combinator(Not(self))
+		Combinator(Not(self.0))
 	}
 }
 
