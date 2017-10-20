@@ -165,6 +165,24 @@ impl<'a, I, O> Parser<'a, I, O> {
 			}
 		})
 	}
+
+	/// Mark parser as expected, abort early when failed in ordered choice.
+	pub fn expect(self, name: &'a str) -> Parser<'a, I, O>
+		where I: Copy + 'static,
+			  O: 'static
+	{
+		Parser::new(move |input: &mut Input<I>| {
+			let start = input.position();
+			match self.parse(input) {
+				Ok(out) => Ok(out),
+				Err(err) => Err(Error::Expect {
+					message: format!("Expect {}", name),
+					position: start,
+					inner: Box::new(err),
+				})
+			}
+		})
+	}
 }
 
 /// Always succeeds, consume no input.
@@ -495,7 +513,13 @@ impl<'a, I: 'static, O: 'static> BitOr for Parser<'a, I, O> {
 
 	fn bitor(self, other: Parser<'a, I, O>) -> Self::Output {
 		Parser::new(move |input: &mut Input<I>| {
-			self.parse(input).or_else(|_| other.parse(input))
+			match self.parse(input) {
+				Ok(out) => Ok(out),
+				Err(err) => match err {
+					Error::Expect{..} => Err(err),
+					_ => other.parse(input)
+				}
+			}
 		})
 	}
 }
@@ -553,9 +577,9 @@ mod tests {
 		assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 		assert_eq!(empty().pos().parse(&mut input), Ok( 5 ) );
 
-		let parser = sym(b'e') | sym(b'd') | empty().map(|_| b'0');
+		let parser = sym(b'e') | sym(b'd').expect("d") | empty().map(|_| b'0');
 		let output = parser.parse(&mut input);
-		assert_eq!(output, Ok(b'0'));
+		assert_eq!(output, Err(Error::Expect { message: "Expect d".to_owned(), position: 5, inner: Box::new(Error::Incomplete) }));
 	}
 
 	#[test]

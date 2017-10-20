@@ -68,6 +68,7 @@ Aside from build issues (and the usual issues around error messages and debuggab
 |p.collect()|Collect all matched input symbols.|
 |p.discard()|Discard parser output.|
 |p.name(_)|Give parser a name to identify parsing errors.|
+|p.expect(_)|Mark parser as expected, abort early when failed in ordered choice.|
 
 The choice of operators is established by their operator precedence, arity and "meaning".
 Use `*` to ignore the result of first operand on the start of an expression, `+` and `-` can fulfill the need on the rest of the expression.
