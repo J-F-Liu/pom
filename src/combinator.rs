@@ -190,6 +190,22 @@ impl<P> Combinator<P> {
 			}
 		})
 	}
+
+	/// Mark parser as expected, abort early when failed in ordered choice.
+	pub fn expect<'a, I: 'a, O>(self, name: &'a str) -> Combinator<impl Parser<'a, I, Output=O>>
+		where P: Parser<'a, I, Output=O>
+	{
+		Combinator(move |input: &'a [I], start: usize| {
+			match self.0.parse(input, start) {
+				res @ Ok(_) => res,
+				Err(err) => Err(Error::Expect {
+					message: format!("Expect {}", name),
+					position: start,
+					inner: Box::new(err),
+				})
+			}
+		})
+	}
 }
 
 /// Always succeeds, consume no input.
@@ -489,9 +505,13 @@ pub struct Alt<P1, P2>(P1, P2);
 impl<'a, I, O, P1: Parser<'a, I, Output=O>, P2: Parser<'a, I, Output=O>> Parser<'a, I> for Alt<P1, P2> {
 	type Output = O;
 	fn parse(&self, input: &'a [I], start: usize) -> Result<(O, usize)> {
-		self.0.parse(input, start).or_else(
-			|_| self.1.parse(input, start)
-		)
+		match self.0.parse(input, start) {
+			res @ Ok(_) => res,
+			Err(err) => match err {
+				Error::Expect{..} => Err(err),
+				_ => self.1.parse(input, start)
+			}
+		}
 	}
 }
 

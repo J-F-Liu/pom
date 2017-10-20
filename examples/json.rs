@@ -46,7 +46,7 @@ fn string<'a>() -> Combinator<impl Parser<'a, u8, Output=String>> {
 
 fn array<'a>() -> Combinator<impl Parser<'a, u8, Output=Vec<JsonValue>>> {
 	let elems = list(comb(value), sym(b',') + space());
-	sym(b'[') * space() * elems - sym(b']')
+	sym(b'[') * space() * elems.expect("array elements") - sym(b']').expect("]")
 }
 
 fn object<'a>() -> Combinator<impl Parser<'a, u8, Output=HashMap<String, JsonValue>>> {

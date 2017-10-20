@@ -7,6 +7,7 @@ pub enum Error {
 	Incomplete,
 	Mismatch { message: String, position: usize },
 	Conversion { message: String, position: usize },
+	Expect { message: String, position: usize, inner: Box<Error> },
 	Custom { message: String, position: usize, inner: Option<Box<Error>> },
 }
 
@@ -25,10 +26,12 @@ impl Display for Error {
 				write!(f, "Mismatch at {}: {}", position, message),
 			&Error::Conversion { ref message, ref position } =>
 				write!(f, "Conversion failed at {}: {}", position, message),
+			&Error::Expect { ref message, ref position, ref inner } =>
+				write!(f, "{} at {}: {}", message, position, inner),
 			&Error::Custom { ref message, ref position, inner: Some(ref inner) } =>
-				write!(f, "Custom error at {}: {} (inner: {})", position, message, inner),
+				write!(f, "{} at {}, (inner: {})", message, position, inner),
 			&Error::Custom { ref message, ref position, inner: None } =>
-				write!(f, "Custom error at {}: {}", position, message),
+				write!(f, "{} at {}", message, position),
 		}
 	}
 }
