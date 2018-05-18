@@ -46,7 +46,7 @@ impl<P> Combinator<P> {
 		})
 	}
 
-	/// Cache parser output result.
+	/// Cache parser output result to speed up backtracking.
 	pub fn cache<'a, I: 'a, O: Clone>(self) -> Combinator<impl Parser<'a, I, Output=O>>
 		where P: Parser<'a, I, Output=O>
 	{
