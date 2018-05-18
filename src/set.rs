@@ -31,19 +31,19 @@ impl Set<char> for str {
 
 impl<T: PartialOrd + Copy> Set<T> for Range<T> {
 	fn contains(&self, elem: &T) -> bool {
-		(self as &Range<T>).contains(*elem)
+		(self as &Range<T>).contains(elem)
 	}
 }
 
 impl<T: PartialOrd + Copy> Set<T> for RangeFrom<T> {
 	fn contains(&self, elem: &T) -> bool {
-		(self as &RangeFrom<T>).contains(*elem)
+		(self as &RangeFrom<T>).contains(elem)
 	}
 }
 
 impl<T: PartialOrd + Copy> Set<T> for RangeTo<T> {
 	fn contains(&self, elem: &T) -> bool {
-		(self as &RangeTo<T>).contains(*elem)
+		(self as &RangeTo<T>).contains(elem)
 	}
 }
 
