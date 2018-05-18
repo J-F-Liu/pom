@@ -1,4 +1,3 @@
-#![feature(conservative_impl_trait)]
 #![feature(range_contains)]
 
 mod result;

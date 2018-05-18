@@ -1,4 +1,3 @@
-#![feature(conservative_impl_trait)]
 extern crate pom;
 use pom::{Parser, Error};
 use pom::combinator::*;

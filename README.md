@@ -85,8 +85,6 @@ assert_eq!(output, Ok( (b'b', &b"de"[..]) ) );
 
 ### Example JSON parser
 ```rust
-#![feature(conservative_impl_trait)]
-
 extern crate pom;
 use pom::char_class::hex_digit;
 use pom::combinator::*;

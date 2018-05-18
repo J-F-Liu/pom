@@ -1,5 +1,5 @@
 #![feature(test)]
-#![feature(conservative_impl_trait)]
+
 extern crate test;
 use test::Bencher;
 

@@ -1,5 +1,3 @@
-#![feature(conservative_impl_trait)]
-
 extern crate pom;
 use pom::char_class::hex_digit;
 use pom::combinator::*;

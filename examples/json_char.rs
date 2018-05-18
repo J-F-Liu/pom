@@ -1,5 +1,3 @@
-#![feature(conservative_impl_trait)]
-
 extern crate pom;
 use pom::combinator::*;
 use pom::Parser;
