@@ -42,7 +42,7 @@ CFG describe a rule system to generate language strings while PEG describe a rul
 ![PEG](peg.png)
 
 Unlike CFGs, PEGs cannot be ambiguous; if a string parses, it has exactly one valid parse tree.
-We normally specify our languages directly by how to recognize it, so PEG is both closer match to syntax practices and more powerful than deterministic CFG.
+We normally specify our languages directly by how to recognize it, so PEG is both closer match to syntax practices and more powerful than nondeterministic CFG.
 
 ### Parsing expressions
 
