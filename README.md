@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom)
 [![Build Status](https://travis-ci.org/J-F-Liu/pom.png)](https://travis-ci.org/J-F-Liu/pom)
+[![Docs](https://docs.rs/pom/badge.svg)](https://docs.rs/pom)
 [![Discord](https://img.shields.io/badge/discord-pom-red.svg)](https://discord.gg/CVy85pg)
 
 PEG parser combinators created using operator overloading without macros.
