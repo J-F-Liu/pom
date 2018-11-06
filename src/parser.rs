@@ -1,9 +1,9 @@
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Shr, BitOr, Neg, Not};
 use super::{Result, Error, Input, Train};
-use set::Set;
-use range::RangeArgument;
-use range::Bound::*;
+use crate::set::Set;
+use crate::range::RangeArgument;
+use crate::range::Bound::*;
 
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
@@ -560,9 +560,9 @@ impl<'a, I: Copy + 'static, O: 'static> Not for Parser<'a, I, O> {
 
 #[cfg(test)]
 mod tests {
-	use ::parser::*;
-	use ::{DataInput, TextInput};
-	use ::{Error, Input};
+	use crate::parser::*;
+	use crate::{DataInput, TextInput};
+	use crate::{Error, Input};
 
 	#[test]
 	fn byte_works() {

@@ -1,6 +1,7 @@
 [package]
 name = "pom"
-version = "1.1.0"
+version = "3.0.0"
+edition = "2018"
 authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
 homepage = "https://github.com/J-F-Liu/pom"
 documentation = "https://docs.rs/crate/pom/"
