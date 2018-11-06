@@ -1,6 +1,6 @@
 #![feature(test)]
 extern crate test;
-use test::Bencher;
+use self::test::Bencher;
 
 use std::fs::File;
 use std::io::Read;
