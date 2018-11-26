@@ -27,7 +27,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Parse input at specified position.
-	pub fn inner_parse(&self, input: &'a [I], start: usize) -> Result<(O, usize)> {
+	pub fn parse_at(&self, input: &'a [I], start: usize) -> Result<(O, usize)> {
 		(self.method)(input, start)
 	}
 
@@ -307,7 +307,7 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		let mut items = vec![];
 		let mut pos = start;
-		if let Ok((first_item, first_pos)) = (parser.method)(input, start) {
+		if let Ok((first_item, first_pos)) = (parser.method)(input, pos) {
 			items.push(first_item);
 			pos = first_pos;
 			while let Ok((_, sep_pos)) = (separator.method)(input, pos) {
@@ -648,10 +648,10 @@ mod tests {
 		{
 			let parser = Parser::new(move |input, start| {
 				(skip(1) * take(3))
-					.inner_parse(input, start)
+					.parse_at(input, start)
 					.and_then(|(v, pos)| {
 						take(v.len() + 2)
-							.inner_parse(input, pos)
+							.parse_at(input, pos)
 							.map(|(u, end)| ((u, v), end))
 					})
 			});
