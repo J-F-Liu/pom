@@ -333,9 +333,9 @@ This is the primary reason why I started to develop pom.
 
 | Basic Parsers  | Description                              |
 | -------------- | ---------------------------------------- |
-| empty()        | Always succeeds, consume no input.        |
+| empty()        | Always succeeds, consume no input.       |
 | end()          | Match end of input.                      |
-| sym(t)        | Match a single terminal symbol *t*.      |
+| sym(t)        | Match a single terminal symbol *t*.       |
 | seq(s)         | Match sequence of symbols.               |
 | list(p,s)      | Match list of *p*, separated by *s*.     |
 | one_of(set)    | Success when current input symbol is one of the set. |

@@ -79,23 +79,22 @@ For example, `A * B * C - D + E - F` will return the results of C and E as a pai
 ## Example code
 ```rust
 extern crate pom;
-use pom::DataInput;
 use pom::parser::*;
 
-let mut input = DataInput::new(b"abcde");
+let input = b"abcde";
 let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
-let output = parser.parse(&mut input);
+let output = parser.parse(input);
 assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
 ```
 
 ### Example JSON parser
 ```rust
 extern crate pom;
-use pom::{Parser, DataInput};
 use pom::parser::*;
+use pom::Parser;
 
-use std::str::FromStr;
 use std::collections::HashMap;
+use std::str::{self, FromStr};
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue {
@@ -116,7 +115,7 @@ fn number() -> Parser<u8, f64> {
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
-	number.collect().convert(String::from_utf8).convert(|s|f64::from_str(&s))
+	number.collect().convert(str::from_utf8).convert(|s|f64::from_str(&s))
 }
 
 fn string() -> Parser<u8, String> {
@@ -156,7 +155,7 @@ pub fn json() -> Parser<u8, JsonValue> {
 }
 
 fn main() {
-	let test = br#"
+	let input = br#"
 	{
         "Image": {
             "Width":  800,
@@ -172,8 +171,7 @@ fn main() {
         }
     }"#;
 
-	let mut input = DataInput::new(test);
-	println!("{:?}", json().parse(&mut input));
+	println!("{:?}", json().parse(input));
 }
 ```
 You can run this example with the following command:
@@ -188,7 +186,3 @@ cargo run --example json
 | pom: json_byte   | 621,319 ns/iter (+/- 20,318)     |
 | pom: json_char   | 627,110 ns/iter (+/- 11,463)     |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
-
-## Releases
-
-If you need to stick with Rust stable, use pom 1.0.0, otherwise you can try pom 2.0.0-alpha.
