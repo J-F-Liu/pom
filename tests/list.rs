@@ -1,7 +1,7 @@
 extern crate pom;
 
-use pom::Parser;
 use pom::parser::*;
+use pom::Parser;
 
 fn spaces() -> Parser<u8, ()> {
 	one_of(b" ").repeat(1..).discard()
@@ -21,5 +21,8 @@ fn test_list() {
 	assert_eq!(works().parse(one), Ok(vec![b'a', b'b', b'c']));
 
 	let two = b"a and b and c and ";
-	assert_eq!(dangle().parse(two), Ok((vec![b'a', b'b', b'c'], &b" and"[..])));
+	assert_eq!(
+		dangle().parse(two),
+		Ok((vec![b'a', b'b', b'c'], &b" and"[..]))
+	);
 }

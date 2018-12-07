@@ -1,5 +1,4 @@
-
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 
 pub enum Bound<'a, T: 'a> {
 	Excluded(&'a T),
@@ -14,26 +13,46 @@ pub trait RangeArgument<T> {
 }
 
 impl<T> RangeArgument<T> for Range<T> {
-	fn start(&self) -> Bound<T> { Included(&self.start) }
-	fn end(&self) -> Bound<T> { Excluded(&self.end) }
+	fn start(&self) -> Bound<T> {
+		Included(&self.start)
+	}
+	fn end(&self) -> Bound<T> {
+		Excluded(&self.end)
+	}
 }
 
 impl<T> RangeArgument<T> for RangeFrom<T> {
-	fn start(&self) -> Bound<T> { Included(&self.start) }
-	fn end(&self) -> Bound<T> { Unbounded }
+	fn start(&self) -> Bound<T> {
+		Included(&self.start)
+	}
+	fn end(&self) -> Bound<T> {
+		Unbounded
+	}
 }
 
 impl<T> RangeArgument<T> for RangeTo<T> {
-	fn start(&self) -> Bound<T> { Unbounded }
-	fn end(&self) -> Bound<T> { Excluded(&self.end) }
+	fn start(&self) -> Bound<T> {
+		Unbounded
+	}
+	fn end(&self) -> Bound<T> {
+		Excluded(&self.end)
+	}
 }
 
 impl<T> RangeArgument<T> for RangeFull {
-	fn start(&self) -> Bound<T> { Unbounded }
-	fn end(&self) -> Bound<T> { Unbounded }
+	fn start(&self) -> Bound<T> {
+		Unbounded
+	}
+	fn end(&self) -> Bound<T> {
+		Unbounded
+	}
 }
 
 impl RangeArgument<usize> for usize {
-	fn start(&self) -> Bound<usize> { Included(self) }
-	fn end(&self) -> Bound<usize> { Included(self) }
+	fn start(&self) -> Bound<usize> {
+		Included(self)
+	}
+	fn end(&self) -> Bound<usize> {
+		Included(self)
+	}
 }

@@ -19,9 +19,9 @@ pub fn alphanum(term: u8) -> bool {
 /// Recognises a hexadecimal digit, `0-9a-fA-F`.
 #[inline]
 pub fn hex_digit(term: u8) -> bool {
-	(term >= 0x30 && term <= 0x39) ||
-	(term >= 0x41 && term <= 0x46) ||
-	(term >= 0x61 && term <= 0x66)
+	(term >= 0x30 && term <= 0x39)
+		|| (term >= 0x41 && term <= 0x46)
+		|| (term >= 0x61 && term <= 0x66)
 }
 
 /// Recognises an octal digit, `0-7`.

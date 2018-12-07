@@ -1,5 +1,5 @@
 use std::cmp::{PartialEq, PartialOrd};
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use std::str;
 
 /// Set relationship.
@@ -57,8 +57,7 @@ impl<T> Set<T> for RangeFull {
 	}
 }
 
-macro_rules! impl_set_for_array
-{
+macro_rules! impl_set_for_array {
 	($n:expr) => {
 		impl Set<u8> for [u8; $n] {
 			fn contains(&self, elem: &u8) -> bool {

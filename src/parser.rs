@@ -79,7 +79,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 			results
 				.borrow_mut()
 				.entry(key)
-				.or_insert_with(||(self.method)(input, start))
+				.or_insert_with(|| (self.method)(input, start))
 				.clone()
 		})
 	}
@@ -508,9 +508,7 @@ impl<'a, I: Copy + 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> 
 }
 
 /// Chain two passers where the second parser depends on the first's result.
-impl<'a, I: Copy, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F>
-	for Parser<'a, I, O>
-{
+impl<'a, I: Copy, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F> for Parser<'a, I, O> {
 	type Output = Parser<'a, I, U>;
 
 	fn shr(self, other: F) -> Self::Output {
