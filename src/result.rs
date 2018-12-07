@@ -20,17 +20,17 @@ impl error::Error for Error {
 impl Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-			&Error::Incomplete =>
+			Error::Incomplete =>
 				write!(f, "Incomplete"),
-			&Error::Mismatch { ref message, ref position } =>
+			Error::Mismatch { ref message, ref position } =>
 				write!(f, "Mismatch at {}: {}", position, message),
-			&Error::Conversion { ref message, ref position } =>
+			Error::Conversion { ref message, ref position } =>
 				write!(f, "Conversion failed at {}: {}", position, message),
-			&Error::Expect { ref message, ref position, ref inner } =>
+			Error::Expect { ref message, ref position, ref inner } =>
 				write!(f, "{} at {}: {}", message, position, inner),
-			&Error::Custom { ref message, ref position, inner: Some(ref inner) } =>
+			Error::Custom { ref message, ref position, inner: Some(ref inner) } =>
 				write!(f, "{} at {}, (inner: {})", message, position, inner),
-			&Error::Custom { ref message, ref position, inner: None } =>
+			Error::Custom { ref message, ref position, inner: None } =>
 				write!(f, "{} at {}", message, position),
 		}
 	}

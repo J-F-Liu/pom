@@ -5,9 +5,11 @@ use crate::set::Set;
 use std::fmt::{Debug, Display};
 use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
 
+type Parse<'a, I, O> = Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
+
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
-	method: Box<Fn(&'a [I], usize) -> Result<(O, usize)> + 'a>,
+	method: Box<Parse<'a, I, O>>,
 }
 
 impl<'a, I, O> Parser<'a, I, O> {
@@ -77,7 +79,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 			results
 				.borrow_mut()
 				.entry(key)
-				.or_insert((self.method)(input, start))
+				.or_insert_with(||(self.method)(input, start))
 				.clone()
 		})
 	}
@@ -174,7 +176,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 					});
 				}
 			}
-			return Ok((items, pos));
+			Ok((items, pos))
 		})
 	}
 
@@ -288,7 +290,7 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 			}
 			pos += 1;
 		}
-		return Ok((tag, pos));
+		Ok((tag, pos))
 	})
 }
 
@@ -318,7 +320,7 @@ where
 				}
 			}
 		}
-		return Ok((items, pos));
+		Ok((items, pos))
 	})
 }
 
