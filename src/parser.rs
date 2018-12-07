@@ -49,7 +49,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	where
 		F: Fn(O) -> ::std::result::Result<U, E> + 'a,
 		E: Debug,
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 		U: 'a,
 	{
@@ -85,7 +85,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Get input position after matching parser.
 	pub fn pos(self) -> Parser<'a, I, usize>
 	where
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -96,7 +96,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Collect all matched input symbols.
 	pub fn collect(self) -> Parser<'a, I, &'a [I]>
 	where
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -107,7 +107,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Discard parser output.
 	pub fn discard(self) -> Parser<'a, I, ()>
 	where
-		I: 'a,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -118,7 +117,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Make parser optional.
 	pub fn opt(self) -> Parser<'a, I, Option<O>>
 	where
-		I: 'a,
 		O: 'a,
 	{
 		Parser::new(
@@ -136,7 +134,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	pub fn repeat<R>(self, range: R) -> Parser<'a, I, Vec<O>>
 	where
 		R: RangeArgument<usize> + Debug + 'a,
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -183,7 +181,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Give parser a name to identify parsing errors.
 	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
 	where
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 	{
 		Parser::new(
@@ -204,7 +202,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Mark parser as expected, abort early when failed in ordered choice.
 	pub fn expect(self, name: &'a str) -> Parser<'a, I, O>
 	where
-		I: Copy + 'a,
+		I: Copy,
 		O: 'a,
 	{
 		Parser::new(
@@ -300,7 +298,7 @@ pub fn list<'a, I, O, U>(
 	separator: Parser<'a, I, U>,
 ) -> Parser<'a, I, Vec<O>>
 where
-	I: Copy + 'a,
+	I: Copy,
 	O: 'a,
 	U: 'a,
 {
@@ -415,7 +413,7 @@ where
 /// Read n symbols.
 pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
 where
-	I: Copy + 'a,
+	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		if input.len() >= n {
@@ -430,7 +428,7 @@ where
 /// Skip n symbols.
 pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
 where
-	I: Copy + 'a,
+	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		if input.len() >= n {
@@ -444,7 +442,6 @@ where
 /// Call a parser factory, can be used to create recursive parsers.
 pub fn call<'a, I, O, F>(parser_factory: F) -> Parser<'a, I, O>
 where
-	I: 'a,
 	O: 'a,
 	F: Fn() -> Parser<'a, I, O> + 'a,
 {
@@ -457,7 +454,7 @@ where
 /// Success when end of input is reached.
 pub fn end<'a, I>() -> Parser<'a, I, ()>
 where
-	I: Copy + Display + 'a,
+	I: Copy + Display,
 {
 	Parser::new(|input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
@@ -509,7 +506,7 @@ impl<'a, I: Copy + 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> 
 }
 
 /// Chain two passers where the second parser depends on the first's result.
-impl<'a, I: Copy + 'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F>
+impl<'a, I: Copy, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F>
 	for Parser<'a, I, O>
 {
 	type Output = Parser<'a, I, U>;
