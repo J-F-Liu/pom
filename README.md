@@ -185,4 +185,4 @@ cargo run --example json
 |------------------|----------------------------------|
 | pom: json_byte   | 621,319 ns/iter (+/- 20,318)     |
 | pom: json_char   | 627,110 ns/iter (+/- 11,463)     |
-| [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)          |
+| [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)|
