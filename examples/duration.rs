@@ -24,48 +24,41 @@ fn number() -> Parser<u8, f32> {
 	let integer = one_of(b"0123456789").repeat(0..);
 	let frac = number_separator() + one_of(b"0123456789").repeat(1..);
 	let number = integer + frac.opt();
-	number.collect().convert(str::from_utf8).convert(f32::from_str)
+	number
+		.collect()
+		.convert(str::from_utf8)
+		.convert(f32::from_str)
 }
 
 fn date_part() -> Parser<u8, (Option<f32>, Option<f32>, Option<f32>, Option<f32>)> {
-	(
-		(number() - sym(b'Y')).opt() +
-		(number() - sym(b'M')).opt() +
-		(number() - sym(b'W')).opt() +
-		(number() - sym(b'D')).opt()
-	)
-		.map(|(((years,months), weeks), days)| {
-			(years, months, weeks, days)
-		})
+	((number() - sym(b'Y')).opt()
+		+ (number() - sym(b'M')).opt()
+		+ (number() - sym(b'W')).opt()
+		+ (number() - sym(b'D')).opt())
+	.map(|(((years, months), weeks), days)| (years, months, weeks, days))
 }
 
-fn time_part() -> Parser<u8, Option<(Option<f32>, Option<f32>, Option<f32>)>> {
-	(
-		sym(b'T') *
-			(
-				(number() - sym(b'H')).opt() +
-					(number() - sym(b'M')).opt() +
-					(number() - sym(b'S')).opt()
-			)
-				.map(|((hours,minutes), seconds)| {
-					(hours, minutes, seconds)
-				})
-	).opt()
+fn time_part() -> Parser<u8, (Option<f32>, Option<f32>, Option<f32>)> {
+	sym(b'T')
+		* ((number() - sym(b'H')).opt()
+			+ (number() - sym(b'M')).opt()
+			+ (number() - sym(b'S')).opt())
+		.map(|((hours, minutes), seconds)| (hours, minutes, seconds))
 }
 
 fn parser() -> Parser<u8, Duration> {
-	(
-		sym(b'P') *
-		date_part() +
-		time_part()
-	)
-		.map(|(date_elements, time_elements)|{
+	sym(b'P')
+		* (time_part().map(|(hours, minutes, seconds)| Duration {
+			years: None,
+			months: None,
+			weeks: None,
+			days: None,
+			hours,
+			minutes,
+			seconds,
+		}) | (date_part() + time_part()).map(|(date_elements, time_elements)| {
 			let (years, months, weeks, days) = date_elements;
-			let (hours, minutes, seconds) = match time_elements {
-				None => (None, None, None),
-				Some(elements) => elements,
-			};
-
+			let (hours, minutes, seconds) = time_elements;
 			Duration {
 				years,
 				months,
@@ -75,7 +68,7 @@ fn parser() -> Parser<u8, Duration> {
 				minutes,
 				seconds,
 			}
-		})
+		}))
 }
 
 /// Parses the ISO 8601 Duration standard
@@ -96,5 +89,4 @@ fn main() {
 		},
 		result.unwrap()
 	);
-
 }
