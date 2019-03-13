@@ -1,4 +1,3 @@
-extern crate pom;
 use pom::parser::*;
 use pom::Parser;
 

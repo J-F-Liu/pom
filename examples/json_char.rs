@@ -1,4 +1,3 @@
-extern crate pom;
 use pom::parser::*;
 
 use std::char::{decode_utf16, REPLACEMENT_CHARACTER};

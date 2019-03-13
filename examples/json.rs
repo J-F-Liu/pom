@@ -1,4 +1,3 @@
-extern crate pom;
 use pom::char_class::hex_digit;
 use pom::parser::*;
 

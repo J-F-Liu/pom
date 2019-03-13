@@ -1,6 +1,6 @@
 [package]
 name = "pom"
-version = "3.0.0"
+version = "3.0.1"
 edition = "2018"
 authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
 homepage = "https://github.com/J-F-Liu/pom"
@@ -10,6 +10,7 @@ license = "MIT"
 readme = "README.md"
 description = "PEG parser combinators using operator overloading without macros."
 categories = ["parsing"]
+keywords = ["parser", "parser-combinators", "parsing", "PEG"]
 
 [badges]
 travis-ci = { repository = "J-F-Liu/pom" }
