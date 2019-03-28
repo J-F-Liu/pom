@@ -418,8 +418,8 @@ where
 	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if input.len() >= n {
-			let pos = start + n;
+		let pos = start + n;
+		if input.len() >= pos {
 			Ok((&input[start..pos], pos))
 		} else {
 			Err(Error::Incomplete)
@@ -433,8 +433,9 @@ where
 	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if input.len() >= n {
-			Ok(((), start + n))
+		let pos = start + n;
+		if input.len() >= pos {
+			Ok(((), pos))
 		} else {
 			Err(Error::Incomplete)
 		}
