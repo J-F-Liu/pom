@@ -537,7 +537,7 @@ impl<'a, I, O: 'a> BitOr for Parser<'a, I, O> {
 }
 
 /// And predicate
-impl<'a, I: Copy + 'static, O: 'static> Neg for Parser<'a, I, O> {
+impl<'a, I: Copy + 'static, O: 'a> Neg for Parser<'a, I, O> {
 	type Output = Parser<'a, I, bool>;
 
 	fn neg(self) -> Self::Output {
@@ -548,7 +548,7 @@ impl<'a, I: Copy + 'static, O: 'static> Neg for Parser<'a, I, O> {
 }
 
 /// Not predicate
-impl<'a, I: Copy, O: 'static> Not for Parser<'a, I, O> {
+impl<'a, I: Copy, O: 'a> Not for Parser<'a, I, O> {
 	type Output = Parser<'a, I, bool>;
 
 	fn not(self) -> Self::Output {
