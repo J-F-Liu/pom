@@ -50,21 +50,21 @@ Aside from build issues (and the usual issues around error messages and debuggab
 |not_a(predicate)|Success when predicate return false on current input symbol.|
 |take(n)|Read *n* symbols.|
 |skip(n)|Skip *n* symbols.|
-|call(pf)|Call a parser factory, can used to create recursive parsers.|
+|call(pf)|Call a parser factory, can be used to create recursive parsers.|
 
 |Parser Combinators|Description|
 | --- | --- |
 | p &#124; q | Match p or q, return result of the first success. |
-| p + q | Match p and q, if both success return a pair of results. |
-| p - q | Match p and q, if both success return result of p. |
-| p * q | Match p and q, if both success return result of q. |
-| p >> q | Parse p and get result P, then parse and return result of q(P). |
-| -p | Success when p success, doesn't consume input. |
-| !p | Success when p fail, doesn't consume input. |
+| p + q | Match p and q, if both succeed return a pair of results. |
+| p - q | Match p and q, if both succeed return result of p. |
+| p * q | Match p and q, if both succeed return result of q. |
+| p >> q | Parse p and get result P, then parse q and return result of q(P). |
+| -p | Success when p succeeds, doesn't consume input. |
+| !p | Success when p fails, doesn't consume input. |
 |p.opt()|Make parser optional. Returns an `Option`.|
 |p.repeat(m..n)| `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>`p.repeat(5)` repeat p exactly 5 times|
 |p.map(f)|Convert parser result to desired value.|
-|p.convert(f)|Convert parser result to desired value, fail in case of conversion error.|
+|p.convert(f)|Convert parser result to desired value, fails in case of conversion error.|
 |p.pos() |Get input position after matching p.|
 |p.collect()|Collect all matched input symbols.|
 |p.discard()|Discard parser output.|
