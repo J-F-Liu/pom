@@ -55,7 +55,7 @@ fn subcontainer<'a>() -> Parser<'a, u8, (Vec<Container>, Vec<String>)> {
 }
 
 fn container<'a>() -> Parser<'a, u8, Container> {
-	let parser = seq(b"Container\n") *
+	seq(b"Container\n") *
 	(
 		indented() |
 		empty().map(|()| vec![])
@@ -68,13 +68,9 @@ fn container<'a>() -> Parser<'a, u8, Container> {
 				line.into_iter().chain(vec![b'\n'].into_iter())
 			).collect()
 		)
-	);
-
-	parser >> |deden| {
-		let (ctr, ctn) = subcontainer().parse(&deden).expect("subcont");
-
-		take(0).map(move |v| (v, ctr.clone(), ctn.clone()))
-	}.map(|(_l, containers, contents)| Container { containers, contents })
+	).map(|deden| {
+		subcontainer().parse(&deden).expect("subcont")
+	}).map(|(containers, contents)| Container { containers, contents })
 }
 
 fn mylang<'a>() -> Parser<'a, u8, Vec<Container>> {
