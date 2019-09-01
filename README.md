@@ -11,6 +11,7 @@ PEG parser combinators created using operator overloading without macros.
 
 - [Tutorial](https://github.com/J-F-Liu/pom/blob/master/doc/article.md)
 - [API Reference](https://docs.rs/crate/pom/)
+- [Learning Parser Combinators With Rust](https://bodil.lol/parser-combinators/) - By Bodil Stokke
 
 ## What is PEG?
 
