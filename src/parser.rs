@@ -5,7 +5,7 @@ use crate::set::Set;
 use std::fmt::{Debug, Display};
 use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
 
-type Parse<'a, I, O> = Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
+type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
 
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
