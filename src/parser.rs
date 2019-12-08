@@ -51,7 +51,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	where
 		F: Fn(O) -> ::std::result::Result<U, E> + 'a,
 		E: Debug,
-		I: Copy,
 		O: 'a,
 		U: 'a,
 	{
@@ -87,7 +86,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Get input position after matching parser.
 	pub fn pos(self) -> Parser<'a, I, usize>
 	where
-		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -98,7 +96,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Collect all matched input symbols.
 	pub fn collect(self) -> Parser<'a, I, &'a [I]>
 	where
-		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -136,7 +133,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	pub fn repeat<R>(self, range: R) -> Parser<'a, I, Vec<O>>
 	where
 		R: RangeArgument<usize> + Debug + 'a,
-		I: Copy,
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
@@ -183,7 +179,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Give parser a name to identify parsing errors.
 	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
 	where
-		I: Copy,
 		O: 'a,
 	{
 		Parser::new(
@@ -204,7 +199,6 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Mark parser as expected, abort early when failed in ordered choice.
 	pub fn expect(self, name: &'a str) -> Parser<'a, I, O>
 	where
-		I: Copy,
 		O: 'a,
 	{
 		Parser::new(
@@ -228,12 +222,12 @@ pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 /// Success when current input symbol equals `t`.
 pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 where
-	I: Copy + PartialEq + Display,
+	I: Clone + PartialEq + Display,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(&s) = input.get(start) {
-			if t == s {
-				Ok((t, start + 1))
+		if let Some(s) = input.get(start) {
+			if t == *s {
+				Ok((s.clone(), start + 1))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect: {}, found: {}", t, s),
@@ -249,7 +243,7 @@ where
 /// Success when sequence of symbols matches current input.
 pub fn seq<'a, 'b: 'a, I>(tag: &'b [I]) -> Parser<'a, I, &'a [I]>
 where
-	I: Copy + PartialEq + Debug,
+	I: PartialEq + Debug,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let mut index = 0;
@@ -258,8 +252,8 @@ where
 			if index == tag.len() {
 				return Ok((tag, pos));
 			}
-			if let Some(&s) = input.get(pos) {
-				if tag[index] != s {
+			if let Some(s) = input.get(pos) {
+				if tag[index] != *s {
 					return Err(Error::Mismatch {
 						message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
 						position: pos,
@@ -300,7 +294,6 @@ pub fn list<'a, I, O, U>(
 	separator: Parser<'a, I, U>,
 ) -> Parser<'a, I, Vec<O>>
 where
-	I: Copy,
 	O: 'a,
 	U: 'a,
 {
@@ -327,13 +320,13 @@ where
 /// Success when current input symbol is one of the set.
 pub fn one_of<'a, I, S>(set: &'a S) -> Parser<'a, I, I>
 where
-	I: Copy + PartialEq + Display + Debug,
+	I: Clone + PartialEq + Display + Debug,
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
 			if set.contains(s) {
-				Ok((*s, start + 1))
+				Ok((s.clone(), start + 1))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect one of: {}, found: {}", set.to_str(), s),
@@ -349,7 +342,7 @@ where
 /// Success when current input symbol is none of the set.
 pub fn none_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 where
-	I: Copy + PartialEq + Display + Debug,
+	I: Clone + PartialEq + Display + Debug,
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
@@ -360,7 +353,7 @@ where
 					position: start,
 				})
 			} else {
-				Ok((*s, start + 1))
+				Ok((s.clone(), start + 1))
 			}
 		} else {
 			Err(Error::Incomplete)
@@ -371,13 +364,13 @@ where
 /// Success when predicate returns true on current input symbol.
 pub fn is_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 where
-	I: Copy + PartialEq + Display + Debug,
+	I: Clone + PartialEq + Display + Debug,
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(&s) = input.get(start) {
-			if predicate(s) {
-				Ok((s, start + 1))
+		if let Some(s) = input.get(start) {
+			if predicate(s.clone()) {
+				Ok((s.clone(), start + 1))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("is_a predicate failed on: {}", s),
@@ -393,18 +386,18 @@ where
 /// Success when predicate returns false on current input symbol.
 pub fn not_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 where
-	I: Copy + PartialEq + Display + Debug,
+	I: Clone + PartialEq + Display + Debug,
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(&s) = input.get(start) {
-			if predicate(s) {
+		if let Some(s) = input.get(start) {
+			if predicate(s.clone()) {
 				Err(Error::Mismatch {
 					message: format!("not_a predicate failed on: {}", s),
 					position: start,
 				})
 			} else {
-				Ok((s, start + 1))
+				Ok((s.clone(), start + 1))
 			}
 		} else {
 			Err(Error::Incomplete)
@@ -414,8 +407,6 @@ where
 
 /// Read n symbols.
 pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
-where
-	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
@@ -429,8 +420,6 @@ where
 
 /// Skip n symbols.
 pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
-where
-	I: Copy,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
@@ -457,7 +446,7 @@ where
 /// Success when end of input is reached.
 pub fn end<'a, I>() -> Parser<'a, I, ()>
 where
-	I: Copy + Display,
+	I: Display,
 {
 	Parser::new(|input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
@@ -472,7 +461,7 @@ where
 }
 
 /// Sequence reserve value
-impl<'a, I: Copy, O: 'a, U: 'a> Add<Parser<'a, I, U>> for Parser<'a, I, O> {
+impl<'a, I, O: 'a, U: 'a> Add<Parser<'a, I, U>> for Parser<'a, I, O> {
 	type Output = Parser<'a, I, (O, U)>;
 
 	fn add(self, other: Parser<'a, I, U>) -> Self::Output {
@@ -485,7 +474,7 @@ impl<'a, I: Copy, O: 'a, U: 'a> Add<Parser<'a, I, U>> for Parser<'a, I, O> {
 }
 
 /// Sequence discard second value
-impl<'a, I: Copy, O: 'a, U: 'a> Sub<Parser<'a, I, U>> for Parser<'a, I, O> {
+impl<'a, I, O: 'a, U: 'a> Sub<Parser<'a, I, U>> for Parser<'a, I, O> {
 	type Output = Parser<'a, I, O>;
 
 	fn sub(self, other: Parser<'a, I, U>) -> Self::Output {
@@ -497,7 +486,7 @@ impl<'a, I: Copy, O: 'a, U: 'a> Sub<Parser<'a, I, U>> for Parser<'a, I, O> {
 }
 
 /// Sequence discard first value
-impl<'a, I: Copy + 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> {
+impl<'a, I: 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> {
 	type Output = Parser<'a, I, U>;
 
 	fn mul(self, other: Parser<'a, I, U>) -> Self::Output {
@@ -509,7 +498,7 @@ impl<'a, I: Copy + 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> 
 }
 
 /// Chain two parsers where the second parser depends on the first's result.
-impl<'a, I: Copy, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F> for Parser<'a, I, O> {
+impl<'a, I, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F> for Parser<'a, I, O> {
 	type Output = Parser<'a, I, U>;
 
 	fn shr(self, other: F) -> Self::Output {
@@ -537,7 +526,7 @@ impl<'a, I, O: 'a> BitOr for Parser<'a, I, O> {
 }
 
 /// And predicate
-impl<'a, I: Copy + 'static, O: 'a> Neg for Parser<'a, I, O> {
+impl<'a, I, O: 'a> Neg for Parser<'a, I, O> {
 	type Output = Parser<'a, I, bool>;
 
 	fn neg(self) -> Self::Output {
@@ -548,7 +537,7 @@ impl<'a, I: Copy + 'static, O: 'a> Neg for Parser<'a, I, O> {
 }
 
 /// Not predicate
-impl<'a, I: Copy, O: 'a> Not for Parser<'a, I, O> {
+impl<'a, I, O: 'a> Not for Parser<'a, I, O> {
 	type Output = Parser<'a, I, bool>;
 
 	fn not(self) -> Self::Output {
