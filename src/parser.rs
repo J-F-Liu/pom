@@ -220,11 +220,12 @@ pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 }
 
 /// Success when current input symbol equals `t`.
-pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
+pub fn sym<'a, T, I>(t: I) -> Parser<'a, T, T>
 where
-	I: Clone + PartialEq + Display,
+	I: PartialEq<T> + Display + 'a,
+	T: Clone + Display
 {
-	Parser::new(move |input: &'a [I], start: usize| {
+	Parser::new(move |input: &'a [T], start: usize| {
 		if let Some(s) = input.get(start) {
 			if t == *s {
 				Ok((s.clone(), start + 1))
@@ -241,11 +242,12 @@ where
 }
 
 /// Success when sequence of symbols matches current input.
-pub fn seq<'a, 'b: 'a, I>(tag: &'b [I]) -> Parser<'a, I, &'a [I]>
+pub fn seq<'a, 'b: 'a, T, I>(tag: &'b [I]) -> Parser<'a, T, &'a [I]>
 where
-	I: PartialEq + Debug,
+	I: PartialEq<T> + Display + Debug,
+	T: Display
 {
-	Parser::new(move |input: &'a [I], start: usize| {
+	Parser::new(move |input: &'a [T], start: usize| {
 		let mut index = 0;
 		loop {
 			let pos = start + index;
@@ -255,7 +257,7 @@ where
 			if let Some(s) = input.get(pos) {
 				if tag[index] != *s {
 					return Err(Error::Mismatch {
-						message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
+						message: format!("seq {:?} expect: {}, found: {}", tag, tag[index], s),
 						position: pos,
 					});
 				}
@@ -320,7 +322,7 @@ where
 /// Success when current input symbol is one of the set.
 pub fn one_of<'a, I, S>(set: &'a S) -> Parser<'a, I, I>
 where
-	I: Clone + PartialEq + Display + Debug,
+	I: Clone + Display,
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
@@ -342,7 +344,7 @@ where
 /// Success when current input symbol is none of the set.
 pub fn none_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
 where
-	I: Clone + PartialEq + Display + Debug,
+	I: Clone + Display,
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
@@ -364,7 +366,7 @@ where
 /// Success when predicate returns true on current input symbol.
 pub fn is_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 where
-	I: Clone + PartialEq + Display + Debug,
+	I: Clone + Display,
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
@@ -386,7 +388,7 @@ where
 /// Success when predicate returns false on current input symbol.
 pub fn not_a<'a, I, F>(predicate: F) -> Parser<'a, I, I>
 where
-	I: Clone + PartialEq + Display + Debug,
+	I: Clone + Display,
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
