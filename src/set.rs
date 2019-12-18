@@ -3,9 +3,9 @@ use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use std::str;
 
 /// Set relationship.
-pub trait Set<T> {
+pub trait Set<T,I> {
 	/// Whether a set contains an element or not.
-	fn contains(&self, elem: &T) -> bool;
+	fn contains(&self, elem: &I) -> bool;
 
 	/// Convert to text for display.
 	fn to_str(&self) -> &str {
@@ -13,15 +13,27 @@ pub trait Set<T> {
 	}
 }
 
-impl<T: PartialEq> Set<T> for [T] {
-	fn contains(&self, elem: &T) -> bool {
-		(self as &[T]).contains(elem)
+fn contains<T, I: PartialEq<T>, Iter: IntoIterator<Item=T>>(iter: Iter, elem: &I) -> bool {
+	let mut ret = false;
+	for v in iter {
+		ret |= elem == &v;
+	}
+	ret
+}
+
+impl<T,I: PartialEq<T>> Set<T,I> for [T] {
+	fn contains(&self, elem: &I) -> bool {
+		contains(self, &elem)
 	}
 }
 
-impl Set<char> for str {
-	fn contains(&self, elem: &char) -> bool {
-		(self as &str).contains(*elem)
+impl<I: PartialEq<char>> Set<char,I> for str {
+	fn contains(&self, elem: &I) -> bool {
+		let mut ret = false;
+		for ref v in self.chars() {
+			ret |= elem == v;
+		}
+		ret
 	}
 
 	fn to_str(&self) -> &str {
@@ -29,26 +41,26 @@ impl Set<char> for str {
 	}
 }
 
-impl<T: PartialOrd + Copy> Set<T> for Range<T> {
-	fn contains(&self, elem: &T) -> bool {
-		self.start <= *elem && self.end > *elem
+impl<T, I: PartialOrd<T>> Set<T,I> for Range<T> {
+	fn contains(&self, elem: &I) -> bool {
+		*elem >= self.start && *elem < self.end
 	}
 }
 
-impl<T: PartialOrd + Copy> Set<T> for RangeFrom<T> {
-	fn contains(&self, elem: &T) -> bool {
-		self.start <= *elem
+impl<T, I: PartialOrd<T>> Set<T,I> for RangeFrom<T> {
+	fn contains(&self, elem: &I) -> bool {
+		*elem >= self.start
 	}
 }
 
-impl<T: PartialOrd + Copy> Set<T> for RangeTo<T> {
-	fn contains(&self, elem: &T) -> bool {
-		self.end > *elem
+impl<T, I: PartialOrd<T>> Set<T,I> for RangeTo<T> {
+	fn contains(&self, elem: &I) -> bool {
+		*elem < self.end
 	}
 }
 
-impl<T> Set<T> for RangeFull {
-	fn contains(&self, _: &T) -> bool {
+impl<T, I> Set<T, I> for RangeFull {
+	fn contains(&self, _: &I) -> bool {
 		true
 	}
 
@@ -59,9 +71,13 @@ impl<T> Set<T> for RangeFull {
 
 macro_rules! impl_set_for_array {
 	($n:expr) => {
-		impl Set<u8> for [u8; $n] {
-			fn contains(&self, elem: &u8) -> bool {
-				(self as &[u8]).contains(elem)
+		impl<I: PartialEq<u8>> Set<u8, I> for [u8; $n] {
+			fn contains(&self, elem: &I) -> bool {
+				let mut ret = false;
+				for v in self {
+					ret |= elem == v;
+				}
+				ret
 			}
 
 			fn to_str(&self) -> &str {

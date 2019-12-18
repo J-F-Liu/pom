@@ -320,12 +320,12 @@ where
 }
 
 /// Success when current input symbol is one of the set.
-pub fn one_of<'a, I, S>(set: &'a S) -> Parser<'a, I, I>
+pub fn one_of<'a, T, I, S>(set: &'a S) -> Parser<'a, T, T>
 where
-	I: Clone + Display,
-	S: Set<I> + ?Sized,
+	T: Clone + Display,
+	S: Set<I,T> + ?Sized,
 {
-	Parser::new(move |input: &'a [I], start: usize| {
+	Parser::new(move |input: &'a [T], start: usize| {
 		if let Some(s) = input.get(start) {
 			if set.contains(s) {
 				Ok((s.clone(), start + 1))
@@ -342,12 +342,12 @@ where
 }
 
 /// Success when current input symbol is none of the set.
-pub fn none_of<'a, I, S>(set: &'static S) -> Parser<'a, I, I>
+pub fn none_of<'a, T, I, S>(set: &'static S) -> Parser<'a, T, T>
 where
-	I: Clone + Display,
-	S: Set<I> + ?Sized,
+	T: Clone + Display,
+	S: Set<I,T> + ?Sized,
 {
-	Parser::new(move |input: &'a [I], start: usize| {
+	Parser::new(move |input: &'a [T], start: usize| {
 		if let Some(s) = input.get(start) {
 			if set.contains(s) {
 				Err(Error::Mismatch {
