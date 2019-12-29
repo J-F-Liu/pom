@@ -288,7 +288,7 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 	})
 }
 
-/// Parse separated list.
+/// Parse separated list. Fails early when one of the item does not parse
 pub fn list<'a, I, O, U>(
 	parser: Parser<'a, I, O>,
 	separator: Parser<'a, I, U>,
@@ -300,17 +300,34 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		let mut items = vec![];
 		let mut pos = start;
-		if let Ok((first_item, first_pos)) = (parser.method)(input, pos) {
-			items.push(first_item);
-			pos = first_pos;
-			while let Ok((_, sep_pos)) = (separator.method)(input, pos) {
-				match (parser.method)(input, sep_pos) {
-					Ok((more_item, more_pos)) => {
-						items.push(more_item);
-						pos = more_pos;
+		match (parser.method)(input, pos) {
+			Ok((first_item, first_pos)) => {
+				items.push(first_item);
+				pos = first_pos;
+				loop {
+					match (separator.method)(input, pos) {
+						Ok((_, sep_pos)) => match (parser.method)(input, sep_pos) {
+							Ok((more_item, more_pos)) => {
+								items.push(more_item);
+								pos = more_pos;
+							}
+							Err(e) => {
+								// return early when there is an
+								// error matching the succeeding
+								// items
+								return Err(e);
+							}
+						},
+						Err(e) => {
+							// the separator does not match, just break
+							break;
+						}
 					}
-					Err(_) => break,
 				}
+			}
+			Err(e) => {
+				// return early when there is an error matching the first item
+				return Err(e);
 			}
 		}
 		Ok((items, pos))
@@ -406,8 +423,7 @@ where
 }
 
 /// Read n symbols.
-pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
-{
+pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
@@ -419,8 +435,7 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
 }
 
 /// Skip n symbols.
-pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
-{
+pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
