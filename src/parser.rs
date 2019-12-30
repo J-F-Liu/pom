@@ -9,7 +9,7 @@ type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
 
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
-	method: Box<Parse<'a, I, O>>,
+	pub method: Box<Parse<'a, I, O>>,
 }
 
 impl<'a, I, O> Parser<'a, I, O> {
