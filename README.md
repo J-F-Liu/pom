@@ -187,3 +187,27 @@ cargo run --example json
 | pom: json_byte   | 621,319 ns/iter (+/- 20,318)     |
 | pom: json_char   | 627,110 ns/iter (+/- 11,463)     |
 | [pest](https://github.com/dragostis/pest): json_char  | 13,359 ns/iter (+/- 811)|
+
+
+### Lifetimes and files
+
+String literals have a static lifetime so they can work with the static version of Parser
+imported from `pom::Parser`. Input read from a file has a shorter lifetime. In this case you
+should import `pom::parser::Parser` and declare lifetimes on your parser functions. So
+
+```javascript
+fn space() -> Parser<u8, ()> {
+    one_of(b" \t\r\n").repeat(0..).discard()
+}
+
+```
+
+would become
+
+```javascript
+fn space<'a>() -> Parser<'a, u8, ()> {
+    one_of(b" \t\r\n").repeat(0..).discard()
+}
+```
+
+
