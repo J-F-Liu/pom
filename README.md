@@ -42,6 +42,7 @@ Aside from build issues (and the usual issues around error messages and debuggab
 | ---------------- | --------------------------------------------------------------- |
 | empty()          | Always succeeds, consume no input.                              |
 | end()            | Match end of input.                                             |
+| any()            | Match any symbol and return the symbol.                                             |
 | sym(t)           | Match a single terminal symbol _t_.                             |
 | seq(s)           | Match sequence of symbols.                                      |
 | list(p,s)        | Match list of _p_, separated by _s_.                            |

@@ -219,6 +219,23 @@ pub fn empty<'a, I>() -> Parser<'a, I, ()> {
 	Parser::new(|_: &[I], start: usize| Ok(((), start)))
 }
 
+/// Match any symbol.
+pub fn any<'a, I>() -> Parser<'a, I, I>
+where
+	I: Clone,
+{
+	Parser::new(|input: &[I], start: usize| {
+		if let Some(s) = input.get(start) {
+			Ok((s.clone(), start + 1))
+		} else {
+			Err(Error::Mismatch {
+				message: "end of input reached".to_owned(),
+				position: start,
+			})
+		}
+	})
+}
+
 /// Success when current input symbol equals `t`.
 pub fn sym<'a, I>(t: I) -> Parser<'a, I, I>
 where
@@ -406,8 +423,7 @@ where
 }
 
 /// Read n symbols.
-pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
-{
+pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
@@ -419,8 +435,7 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]>
 }
 
 /// Skip n symbols.
-pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()>
-{
+pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
