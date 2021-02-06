@@ -58,49 +58,23 @@ impl<T> Set<T> for RangeFull {
 }
 
 macro_rules! impl_set_for_array {
-	($n:expr) => {
-		impl Set<u8> for [u8; $n] {
-			fn contains(&self, elem: &u8) -> bool {
-				(self as &[u8]).contains(elem)
-			}
+	( $($n:expr),+ ) => {
+		$(
+			impl Set<u8> for [u8; $n] {
+				fn contains(&self, elem: &u8) -> bool {
+					(self as &[u8]).contains(elem)
+				}
 
-			fn to_str(&self) -> &str {
-				str::from_utf8(self).unwrap_or("<byte array>")
+				fn to_str(&self) -> &str {
+					str::from_utf8(self).unwrap_or("<byte array>")
+				}
 			}
-		}
+		)+
 	};
 }
 
-impl_set_for_array!(0);
-impl_set_for_array!(1);
-impl_set_for_array!(2);
-impl_set_for_array!(3);
-impl_set_for_array!(4);
-impl_set_for_array!(5);
-impl_set_for_array!(6);
-impl_set_for_array!(7);
-impl_set_for_array!(8);
-impl_set_for_array!(9);
-impl_set_for_array!(10);
-impl_set_for_array!(11);
-impl_set_for_array!(12);
-impl_set_for_array!(13);
-impl_set_for_array!(14);
-impl_set_for_array!(15);
-impl_set_for_array!(16);
-impl_set_for_array!(17);
-impl_set_for_array!(18);
-impl_set_for_array!(19);
-impl_set_for_array!(20);
-impl_set_for_array!(21);
-impl_set_for_array!(22);
-impl_set_for_array!(23);
-impl_set_for_array!(24);
-impl_set_for_array!(25);
-impl_set_for_array!(26);
-impl_set_for_array!(27);
-impl_set_for_array!(28);
-impl_set_for_array!(29);
-impl_set_for_array!(30);
-impl_set_for_array!(31);
-impl_set_for_array!(32);
+impl_set_for_array!(
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+	26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+	50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
+);
