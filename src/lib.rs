@@ -2,7 +2,7 @@ pub mod range;
 mod result;
 pub mod set;
 
-/// Constains predefined parsers and combinators.
+/// Contains predefined parsers and combinators.
 pub mod parser;
 
 /// Utility functions to recognize char class of byte value.

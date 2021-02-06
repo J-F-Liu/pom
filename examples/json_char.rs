@@ -43,10 +43,11 @@ fn string<'a>() -> Parser<'a, char, String> {
 	let char_string = (none_of("\\\"") | escape_sequence)
 		.repeat(1..)
 		.map(String::from_iter);
-	let utf16_char = tag("\\u") * is_a(|c: char| c.is_digit(16))
-		.repeat(4)
-		.map(String::from_iter)
-		.convert(|digits| u16::from_str_radix(&digits, 16));
+	let utf16_char = tag("\\u")
+		* is_a(|c: char| c.is_digit(16))
+			.repeat(4)
+			.map(String::from_iter)
+			.convert(|digits| u16::from_str_radix(&digits, 16));
 	let utf16_string = utf16_char.repeat(1..).map(|chars| {
 		decode_utf16(chars)
 			.map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))
