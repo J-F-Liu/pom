@@ -1,33 +1,31 @@
 /// Recognises an alphabetic character, `a-zA-Z`.
 #[inline]
 pub fn alpha(term: u8) -> bool {
-	(term >= 0x41 && term <= 0x5A) || (term >= 0x61 && term <= 0x7A)
+	term.is_ascii_alphabetic()
 }
 
 /// Recognises a decimal digit, `0-9`.
 #[inline]
 pub fn digit(term: u8) -> bool {
-	term >= 0x30 && term <= 0x39
+	term.is_ascii_digit()
 }
 
 /// Recognises an alphanumeric character, `a-zA-Z0-9`.
 #[inline]
 pub fn alphanum(term: u8) -> bool {
-	alpha(term) || digit(term)
+	term.is_ascii_alphanumeric()
 }
 
 /// Recognises a hexadecimal digit, `0-9a-fA-F`.
 #[inline]
 pub fn hex_digit(term: u8) -> bool {
-	(term >= 0x30 && term <= 0x39)
-		|| (term >= 0x41 && term <= 0x46)
-		|| (term >= 0x61 && term <= 0x66)
+	(0x30..=0x39).contains(&term) || (0x41..=0x46).contains(&term) || (0x61..=0x66).contains(&term)
 }
 
 /// Recognises an octal digit, `0-7`.
 #[inline]
 pub fn oct_digit(term: u8) -> bool {
-	term >= 0x30 && term <= 0x37
+	(0x30..=0x37).contains(&term)
 }
 
 /// Recognises a space or tab.
