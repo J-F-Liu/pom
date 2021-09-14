@@ -22,7 +22,7 @@ fn space<'a>() -> Parser<'a, u8, ()> {
 }
 
 fn number<'a>() -> Parser<'a, u8, f64> {
-	let integer = one_of(b"123456789") - one_of(b"0123456789").repeat(0..) | sym(b'0');
+	let integer = (one_of(b"123456789") - one_of(b"0123456789").repeat(0..)) | sym(b'0');
 	let frac = sym(b'.') + one_of(b"0123456789").repeat(1..);
 	let exp = one_of(b"eE") + one_of(b"+-").opt() + one_of(b"0123456789").repeat(1..);
 	let number = sym(b'-').opt() + integer + frac.opt() + exp.opt();
@@ -75,10 +75,10 @@ fn value<'a>() -> Parser<'a, u8, JsonValue> {
 	(seq(b"null").map(|_| JsonValue::Null)
 		| seq(b"true").map(|_| JsonValue::Bool(true))
 		| seq(b"false").map(|_| JsonValue::Bool(false))
-		| number().map(|num| JsonValue::Num(num))
-		| string().map(|text| JsonValue::Str(text))
-		| array().map(|arr| JsonValue::Array(arr))
-		| object().map(|obj| JsonValue::Object(obj)))
+		| number().map(JsonValue::Num)
+		| string().map(JsonValue::Str)
+		| array().map(JsonValue::Array)
+		| object().map(JsonValue::Object))
 		- space()
 }
 
@@ -90,6 +90,6 @@ pub fn json<'a>() -> Parser<'a, u8, JsonValue> {
 fn main() {
 	let mut file = File::open("examples/test.json").unwrap();
 	let mut input: Vec<u8> = Vec::new();
-	file.read_to_end(&mut input);
+	file.read_to_end(&mut input).unwrap();
 	println!("{:?}", json().parse(input.as_slice()));
 }

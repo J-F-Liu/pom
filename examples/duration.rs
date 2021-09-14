@@ -29,6 +29,7 @@ fn number() -> Parser<u8, f32> {
 		.convert(f32::from_str)
 }
 
+#[allow(clippy::type_complexity)]
 fn date_part() -> Parser<u8, (Option<f32>, Option<f32>, Option<f32>, Option<f32>)> {
 	((number() - sym(b'Y')).opt()
 		+ (number() - sym(b'M')).opt()
@@ -37,6 +38,7 @@ fn date_part() -> Parser<u8, (Option<f32>, Option<f32>, Option<f32>, Option<f32>
 	.map(|(((years, months), weeks), days)| (years, months, weeks, days))
 }
 
+#[allow(clippy::type_complexity)]
 fn time_part() -> Parser<u8, (Option<f32>, Option<f32>, Option<f32>)> {
 	sym(b'T')
 		* ((number() - sym(b'H')).opt()

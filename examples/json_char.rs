@@ -20,7 +20,7 @@ fn space<'a>() -> Parser<'a, char, ()> {
 }
 
 fn number<'a>() -> Parser<'a, char, f64> {
-	let integer = one_of("123456789") - one_of("0123456789").repeat(0..) | sym('0');
+	let integer = (one_of("123456789") - one_of("0123456789").repeat(0..)) | sym('0');
 	let frac = sym('.') + one_of("0123456789").repeat(1..);
 	let exp = one_of("eE") + one_of("+-").opt() + one_of("0123456789").repeat(1..);
 	let number = sym('-').opt() + integer + frac.opt() + exp.opt();
@@ -73,10 +73,10 @@ fn value<'a>() -> Parser<'a, char, JsonValue> {
 	(tag("null").map(|_| JsonValue::Null)
 		| tag("true").map(|_| JsonValue::Bool(true))
 		| tag("false").map(|_| JsonValue::Bool(false))
-		| number().map(|num| JsonValue::Num(num))
-		| string().map(|text| JsonValue::Str(text))
-		| array().map(|arr| JsonValue::Array(arr))
-		| object().map(|obj| JsonValue::Object(obj)))
+		| number().map(JsonValue::Num)
+		| string().map(JsonValue::Str)
+		| array().map(JsonValue::Array)
+		| object().map(JsonValue::Object))
 		- space()
 }
 

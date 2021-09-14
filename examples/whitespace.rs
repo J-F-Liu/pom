@@ -32,8 +32,8 @@ fn content<'a>() -> Parser<'a, u8, String> {
 }
 
 fn subcontainer<'a>() -> Parser<'a, u8, (Vec<Container>, Vec<String>)> {
-	(call(container).map(|ctr| TmpContainerOrContent::Container(ctr))
-		| content().map(|ctn| TmpContainerOrContent::Content(ctn)))
+	(call(container).map(TmpContainerOrContent::Container)
+		| content().map(TmpContainerOrContent::Content))
 	.repeat(1..)
 	.map(|tmp| {
 		tmp.into_iter().fold((vec![], vec![]), |acc, x| match x {
@@ -51,12 +51,12 @@ fn subcontainer<'a>() -> Parser<'a, u8, (Vec<Container>, Vec<String>)> {
 
 fn container<'a>() -> Parser<'a, u8, Container> {
 	seq(b"Container\n")
-		* (indented() | empty().map(|()| vec![]))
+		* (indented() | empty().map(|()| Vec::new()))
 			.repeat(1..)
 			.map(|lines| {
 				lines
 					.into_iter()
-					.filter(|line| line.len() > 0)
+					.filter(|line| !line.is_empty())
 					.fold(vec![], |accum, line| {
 						accum
 							.into_iter()
@@ -72,7 +72,7 @@ fn container<'a>() -> Parser<'a, u8, Container> {
 }
 
 fn mylang<'a>() -> Parser<'a, u8, Vec<Container>> {
-	(whitespace() * list(call(container), whitespace()))
+	whitespace() * list(call(container), whitespace())
 }
 
 fn main() -> Result<(), ()> {

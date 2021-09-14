@@ -609,7 +609,7 @@ mod tests {
 	#[test]
 	fn char_works() {
 		let input = "abcd".chars().collect::<Vec<char>>();
-		let parser = tag("ab") + sym('c') | sym('d').map(|_| ("", '0'));
+		let parser = (tag("ab") + sym('c')) | sym('d').map(|_| ("", '0'));
 		let output = parser.parse(&input);
 		assert_eq!(output, Ok(("ab", 'c')));
 	}
@@ -644,7 +644,7 @@ mod tests {
 		}
 		{
 			let parser =
-				skip(1) * take(3) >> |v: &'static [u8]| take(v.len() + 2).map(move |u| (u, v));
+				(skip(1) * take(3)) >> |v: &'static [u8]| take(v.len() + 2).map(move |u| (u, v));
 			assert_eq!(parser.parse(input), Ok((&b"ooooo"[..], &b"ooo"[..])));
 		}
 		{
