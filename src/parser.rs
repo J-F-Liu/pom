@@ -1,22 +1,89 @@
-use super::{Error, Result};
+use super::{Error, Result, RollbackRecord, RollbackType};
 use crate::range::Bound::*;
 use crate::range::RangeArgument;
 use crate::set::Set;
 use std::fmt::{Debug, Display};
 use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
 
-type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
+/// The third item, `Option<Error>`, if some, explains why the consumption of the next terminal has failed.
+/// This answers the question "Why didn't the parser continue?". For all fixed-length parsers, like `sym` and `seq`, it should always be none.
+type ParseOutput<O> = (O, usize, Option<Error>);
+
+type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<ParseOutput<O>> + 'a;
+
+fn merge_errors(name: String, pos: usize, err1: Error, err2: Error) -> Error {
+	match (err1, err2) {
+		(
+			Error::Rollback {
+				rollbacks: rollbacks1,
+			},
+			Error::Rollback {
+				rollbacks: rollbacks2,
+			},
+		) => Error::Rollback {
+			rollbacks: RollbackRecord {
+				name,
+				position: pos,
+				typ: RollbackType::Stop,
+				inner: None,
+				previous_tracks: vec![rollbacks1, rollbacks2],
+			},
+		},
+		(_, err2) => err2,
+	}
+}
+
+fn merge_continuation_errors(
+	name: String,
+	pos: usize,
+	cont_err1: Option<Error>,
+	cont_err2: Option<Error>,
+) -> Option<Error> {
+	match (cont_err1, cont_err2) {
+		(
+			Some(Error::Rollback {
+				rollbacks: rollbacks1,
+			}),
+			Some(Error::Rollback {
+				rollbacks: rollbacks2,
+			}),
+		) => Some(Error::Rollback {
+			rollbacks: RollbackRecord {
+				name,
+				position: pos,
+				typ: RollbackType::Stop,
+				inner: None,
+				previous_tracks: vec![rollbacks1, rollbacks2],
+			},
+		}),
+		(
+			Some(Error::Rollback {
+				rollbacks: rollbacks1,
+			}),
+			None,
+		) => Some(Error::Rollback {
+			rollbacks: RollbackRecord {
+				name,
+				position: pos,
+				typ: RollbackType::Stop,
+				inner: None,
+				previous_tracks: vec![rollbacks1],
+			},
+		}),
+		(_, cont_err2) => cont_err2,
+	}
+}
 
 /// Parser combinator.
 pub struct Parser<'a, I, O> {
-	pub method: Box<Parse<'a, I, O>>,
+	method: Box<Parse<'a, I, O>>,
 }
 
 impl<'a, I, O> Parser<'a, I, O> {
 	/// Create new parser.
 	pub fn new<P>(parse: P) -> Parser<'a, I, O>
 	where
-		P: Fn(&'a [I], usize) -> Result<(O, usize)> + 'a,
+		P: Fn(&'a [I], usize) -> Result<ParseOutput<O>> + 'a,
 	{
 		Parser {
 			method: Box::new(parse),
@@ -25,11 +92,12 @@ impl<'a, I, O> Parser<'a, I, O> {
 
 	/// Apply the parser to parse input.
 	pub fn parse(&self, input: &'a [I]) -> Result<O> {
-		(self.method)(input, 0).map(|(out, _)| out)
+		self.parse_at(input, 0).map(|(out, _, _)| out)
 	}
 
 	/// Parse input at specified position.
-	pub fn parse_at(&self, input: &'a [I], start: usize) -> Result<(O, usize)> {
+	#[inline]
+	pub fn parse_at(&self, input: &'a [I], start: usize) -> Result<ParseOutput<O>> {
 		(self.method)(input, start)
 	}
 
@@ -42,7 +110,8 @@ impl<'a, I, O> Parser<'a, I, O> {
 		U: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).map(|(out, pos)| (f(out), pos))
+			self.parse_at(input, start)
+				.map(|(out, pos, cont_err)| (f(out), pos, cont_err))
 		})
 	}
 
@@ -55,13 +124,14 @@ impl<'a, I, O> Parser<'a, I, O> {
 		U: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).and_then(|(res, pos)| match f(res) {
-				Ok(out) => Ok((out, pos)),
-				Err(err) => Err(Error::Conversion {
-					message: format!("Conversion error: {:?}", err),
-					position: start,
-				}),
-			})
+			self.parse_at(input, start)
+				.and_then(|(res, pos, cont_err)| match f(res) {
+					Ok(out) => Ok((out, pos, cont_err)),
+					Err(err) => Err(Error::Conversion {
+						message: format!("Conversion error: {:?}", err),
+						position: start,
+					}),
+				})
 		})
 	}
 
@@ -78,7 +148,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 			results
 				.borrow_mut()
 				.entry(key)
-				.or_insert_with(|| (self.method)(input, start))
+				.or_insert_with(|| self.parse_at(input, start))
 				.clone()
 		})
 	}
@@ -89,7 +159,8 @@ impl<'a, I, O> Parser<'a, I, O> {
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).map(|(_, pos)| (pos, pos))
+			self.parse_at(input, start)
+				.map(|(_, pos, cont_err)| (pos, pos, cont_err))
 		})
 	}
 
@@ -99,7 +170,8 @@ impl<'a, I, O> Parser<'a, I, O> {
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).map(|(_, end)| (&input[start..end], end))
+			self.parse_at(input, start)
+				.map(|(_, end, cont_err)| (&input[start..end], end, cont_err))
 		})
 	}
 
@@ -109,7 +181,8 @@ impl<'a, I, O> Parser<'a, I, O> {
 		O: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).map(|(_, end)| ((), end))
+			self.parse_at(input, start)
+				.map(|(_, end, cont_err)| ((), end, cont_err))
 		})
 	}
 
@@ -119,9 +192,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 		O: 'a,
 	{
 		Parser::new(
-			move |input: &'a [I], start: usize| match (self.method)(input, start) {
-				Ok((out, pos)) => Ok((Some(out), pos)),
-				Err(_) => Ok((None, start)),
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
+				Ok((out, pos, cont_err)) => Ok((Some(out), pos, cont_err)),
+				Err(err) => Ok((None, start, Some(err))),
 			},
 		)
 	}
@@ -138,6 +211,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 		Parser::new(move |input: &'a [I], start: usize| {
 			let mut items = vec![];
 			let mut pos = start;
+			let mut cont_err = None;
 			loop {
 				match range.end() {
 					Included(&max_count) => {
@@ -153,11 +227,15 @@ impl<'a, I, O> Parser<'a, I, O> {
 					Unbounded => (),
 				}
 
-				if let Ok((item, item_pos)) = (self.method)(input, pos) {
-					items.push(item);
-					pos = item_pos;
-				} else {
-					break;
+				match self.parse_at(input, pos) {
+					Ok((item, item_pos, _)) => {
+						items.push(item);
+						pos = item_pos;
+					}
+					Err(err) => {
+						cont_err = Some(err);
+						break;
+					}
 				}
 			}
 			if let Included(&min_count) = range.start() {
@@ -172,24 +250,83 @@ impl<'a, I, O> Parser<'a, I, O> {
 					});
 				}
 			}
-			Ok((items, pos))
+			Ok((items, pos, cont_err))
 		})
 	}
 
-	/// Give parser a name to identify parsing errors.
+	/// Give parser a name to identify parsing errors, and stops rollback tracing propagation.
 	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
 	where
 		O: 'a,
 	{
 		Parser::new(
-			move |input: &'a [I], start: usize| match (self.method)(input, start) {
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
 				res @ Ok(_) => res,
 				Err(err) => match err {
+					// TODO: how to handle rollbacks?
 					Error::Custom { .. } => Err(err),
 					_ => Err(Error::Custom {
 						message: format!("failed to parse {}", name),
 						position: start,
 						inner: Some(Box::new(err)),
+					}),
+				},
+			},
+		)
+	}
+
+	/// Trace parser with an identifier for rollback tracing.
+	pub fn trace(self, id: &'a str) -> Parser<'a, I, O>
+	where
+		O: 'a,
+	{
+		Parser::new(
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
+				res @ Ok((_, _, None)) => res,
+				Ok((out, pos, Some(Error::Rollback { rollbacks }))) => Ok((
+					out,
+					pos,
+					Some(Error::Rollback {
+						rollbacks: RollbackRecord {
+							name: id.into(),
+							position: start,
+							typ: RollbackType::Fail,
+							inner: None,
+							previous_tracks: vec![rollbacks],
+						},
+					}),
+				)),
+				Ok((out, pos, Some(cont_err))) => Ok((
+					out,
+					pos,
+					Some(Error::Rollback {
+						rollbacks: RollbackRecord {
+							name: id.into(),
+							position: start,
+							typ: RollbackType::Fail,
+							inner: Some(Box::new(cont_err)),
+							previous_tracks: vec![],
+						},
+					}),
+				)),
+				Err(err) => match err {
+					Error::Rollback { rollbacks } => Err(Error::Rollback {
+						rollbacks: RollbackRecord {
+							name: id.into(),
+							position: start,
+							typ: RollbackType::Fail,
+							inner: None,
+							previous_tracks: vec![rollbacks],
+						},
+					}),
+					_ => Err(Error::Rollback {
+						rollbacks: RollbackRecord {
+							name: id.into(),
+							position: start,
+							typ: RollbackType::Fail,
+							inner: Some(Box::new(err)),
+							previous_tracks: vec![],
+						},
 					}),
 				},
 			},
@@ -202,7 +339,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 		O: 'a,
 	{
 		Parser::new(
-			move |input: &'a [I], start: usize| match (self.method)(input, start) {
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
 				res @ Ok(_) => res,
 				Err(err) => Err(Error::Expect {
 					message: format!("Expect {}", name),
@@ -216,7 +353,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 
 /// Always succeeds, consume no input.
 pub fn empty<'a, I>() -> Parser<'a, I, ()> {
-	Parser::new(|_: &[I], start: usize| Ok(((), start)))
+	Parser::new(|_: &[I], start: usize| Ok(((), start, None)))
 }
 
 /// Match any symbol.
@@ -226,7 +363,7 @@ where
 {
 	Parser::new(|input: &[I], start: usize| {
 		if let Some(s) = input.get(start) {
-			Ok((s.clone(), start + 1))
+			Ok((s.clone(), start + 1, None))
 		} else {
 			Err(Error::Mismatch {
 				message: "end of input reached".to_owned(),
@@ -244,7 +381,7 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
 			if t == *s {
-				Ok((s.clone(), start + 1))
+				Ok((s.clone(), start + 1, None))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect: {}, found: {}", t, s),
@@ -267,7 +404,7 @@ where
 		loop {
 			let pos = start + index;
 			if index == tag.len() {
-				return Ok((tag, pos));
+				return Ok((tag, pos, None));
 			}
 			if let Some(s) = input.get(pos) {
 				if tag[index] != *s {
@@ -301,7 +438,7 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 			}
 			pos += 1;
 		}
-		Ok((tag, pos))
+		Ok((tag, pos, None))
 	})
 }
 
@@ -317,20 +454,30 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		let mut items = vec![];
 		let mut pos = start;
-		if let Ok((first_item, first_pos)) = (parser.method)(input, pos) {
+		let mut cont_err = None;
+		if let Ok((first_item, first_pos, _)) = parser.parse_at(input, pos) {
 			items.push(first_item);
 			pos = first_pos;
-			while let Ok((_, sep_pos)) = (separator.method)(input, pos) {
-				match (parser.method)(input, sep_pos) {
-					Ok((more_item, more_pos)) => {
-						items.push(more_item);
-						pos = more_pos;
+			loop {
+				match separator.parse_at(input, pos) {
+					Ok((_, sep_pos, _)) => match parser.parse_at(input, sep_pos) {
+						Ok((more_item, more_pos, _)) => {
+							items.push(more_item);
+							pos = more_pos;
+						}
+						Err(err) => {
+							cont_err = Some(err);
+							break;
+						}
+					},
+					Err(err) => {
+						cont_err = Some(err);
+						break;
 					}
-					Err(_) => break,
 				}
 			}
 		}
-		Ok((items, pos))
+		Ok((items, pos, cont_err))
 	})
 }
 
@@ -343,7 +490,7 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
 			if set.contains(s) {
-				Ok((s.clone(), start + 1))
+				Ok((s.clone(), start + 1, None))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("expect one of: {}, found: {}", set.to_str(), s),
@@ -370,7 +517,7 @@ where
 					position: start,
 				})
 			} else {
-				Ok((s.clone(), start + 1))
+				Ok((s.clone(), start + 1, None))
 			}
 		} else {
 			Err(Error::Incomplete)
@@ -387,7 +534,7 @@ where
 	Parser::new(move |input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
 			if predicate(s.clone()) {
-				Ok((s.clone(), start + 1))
+				Ok((s.clone(), start + 1, None))
 			} else {
 				Err(Error::Mismatch {
 					message: format!("is_a predicate failed on: {}", s),
@@ -414,7 +561,7 @@ where
 					position: start,
 				})
 			} else {
-				Ok((s.clone(), start + 1))
+				Ok((s.clone(), start + 1, None))
 			}
 		} else {
 			Err(Error::Incomplete)
@@ -427,7 +574,7 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
-			Ok((&input[start..pos], pos))
+			Ok((&input[start..pos], pos, None))
 		} else {
 			Err(Error::Incomplete)
 		}
@@ -439,7 +586,7 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
 		if input.len() >= pos {
-			Ok(((), pos))
+			Ok(((), pos, None))
 		} else {
 			Err(Error::Incomplete)
 		}
@@ -454,7 +601,7 @@ where
 {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let parser = parser_factory();
-		(parser.method)(input, start)
+		parser.parse_at(input, start)
 	})
 }
 
@@ -470,7 +617,7 @@ where
 				position: start,
 			})
 		} else {
-			Ok(((), start))
+			Ok(((), start, None))
 		}
 	})
 }
@@ -481,9 +628,17 @@ impl<'a, I, O: 'a, U: 'a> Add<Parser<'a, I, U>> for Parser<'a, I, O> {
 
 	fn add(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).and_then(|(out1, pos1)| {
-				(other.method)(input, pos1).map(|(out2, pos2)| ((out1, out2), pos2))
-			})
+			self.parse_at(input, start)
+				.and_then(|(out1, pos1, cont_err1)| {
+					other.parse_at(input, pos1).map(|(out2, pos2, cont_err2)| {
+						let cont_err = if pos2 == pos1 {
+							merge_continuation_errors("<Add>".into(), pos2, cont_err1, cont_err2)
+						} else {
+							cont_err2
+						};
+						((out1, out2), pos2, cont_err)
+					})
+				})
 		})
 	}
 }
@@ -494,8 +649,17 @@ impl<'a, I, O: 'a, U: 'a> Sub<Parser<'a, I, U>> for Parser<'a, I, O> {
 
 	fn sub(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start)
-				.and_then(|(out1, pos1)| (other.method)(input, pos1).map(|(_, pos2)| (out1, pos2)))
+			self.parse_at(input, start)
+				.and_then(|(out1, pos1, cont_err1)| {
+					other.parse_at(input, pos1).map(|(_, pos2, cont_err2)| {
+						let cont_err = if pos2 == pos1 {
+							merge_continuation_errors("<Sub>".into(), pos2, cont_err1, cont_err2)
+						} else {
+							cont_err2
+						};
+						(out1, pos2, cont_err)
+					})
+				})
 		})
 	}
 }
@@ -506,8 +670,17 @@ impl<'a, I: 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> {
 
 	fn mul(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start)
-				.and_then(|(_, pos1)| (other.method)(input, pos1).map(|(out2, pos2)| (out2, pos2)))
+			self.parse_at(input, start)
+				.and_then(|(_, pos1, cont_err1)| {
+					other.parse_at(input, pos1).map(|(out2, pos2, cont_err2)| {
+						let cont_err = if pos2 == pos1 {
+							merge_continuation_errors("<Mul>".into(), pos2, cont_err1, cont_err2)
+						} else {
+							cont_err2
+						};
+						(out2, pos2, cont_err)
+					})
+				})
 		})
 	}
 }
@@ -518,7 +691,24 @@ impl<'a, I, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, I, U> + 'a> Shr<F> for Parser<'
 
 	fn shr(self, other: F) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).and_then(|(out, pos)| (other(out).method)(input, pos))
+			self.parse_at(input, start)
+				.and_then(|(out1, pos1, cont_err1)| {
+					other(out1)
+						.parse_at(input, pos1)
+						.map(|(out2, pos2, cont_err2)| {
+							let cont_err = if pos2 == pos1 {
+								merge_continuation_errors(
+									"<Shr>".into(),
+									pos2,
+									cont_err1,
+									cont_err2,
+								)
+							} else {
+								cont_err2
+							};
+							(out2, pos2, cont_err)
+						})
+				})
 		})
 	}
 }
@@ -529,11 +719,26 @@ impl<'a, I, O: 'a> BitOr for Parser<'a, I, O> {
 
 	fn bitor(self, other: Parser<'a, I, O>) -> Self::Output {
 		Parser::new(
-			move |input: &'a [I], start: usize| match (self.method)(input, start) {
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
 				Ok(out) => Ok(out),
 				Err(err) => match err {
 					Error::Expect { .. } => Err(err),
-					_ => (other.method)(input, start),
+					_ => match other.parse_at(input, start) {
+						Ok((out, pos, cont_err2)) => {
+							let cont_err = if pos == start {
+								merge_continuation_errors(
+									"<Bitor>".into(),
+									pos,
+									Some(err),
+									cont_err2,
+								)
+							} else {
+								cont_err2
+							};
+							Ok((out, pos, cont_err))
+						}
+						Err(err2) => Err(merge_errors("<Bitor>".into(), start, err, err2)),
+					},
 				},
 			},
 		)
@@ -546,7 +751,7 @@ impl<'a, I, O: 'a> Neg for Parser<'a, I, O> {
 
 	fn neg(self) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start).map(|_| (true, start))
+			self.parse_at(input, start).map(|_| (true, start, None))
 		})
 	}
 }
@@ -557,12 +762,12 @@ impl<'a, I, O: 'a> Not for Parser<'a, I, O> {
 
 	fn not(self) -> Self::Output {
 		Parser::new(
-			move |input: &'a [I], start: usize| match (self.method)(input, start) {
+			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
 				Ok(_) => Err(Error::Mismatch {
 					message: "not predicate failed".to_string(),
 					position: start,
 				}),
-				Err(_) => Ok((true, start)),
+				Err(_) => Ok((true, start, None)),
 			},
 		)
 	}
@@ -651,10 +856,10 @@ mod tests {
 			let parser = Parser::new(move |input, start| {
 				(skip(1) * take(3))
 					.parse_at(input, start)
-					.and_then(|(v, pos)| {
+					.and_then(|(v, pos, _)| {
 						take(v.len() + 2)
 							.parse_at(input, pos)
-							.map(|(u, end)| ((u, v), end))
+							.map(|(u, end, _)| ((u, v), end, None))
 					})
 			});
 			assert_eq!(parser.parse(input), Ok((&b"ooooo"[..], &b"ooo"[..])));
