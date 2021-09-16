@@ -32,13 +32,21 @@ impl RollbackRecord {
 				writeln!(f, "{}}}", idnt)?;
 			}
 		}
+		let rollback_type = match self.typ {
+			RollbackType::Fail => "failed",
+			RollbackType::Stop => "stopped",
+		};
 		match &self.inner {
 			Some(ref inner) => writeln!(
 				f,
-				"{}{} failed at {}, (inner: {})",
-				idnt, &self.name, &self.position, inner
+				"{}{} {} at {}, (inner: {})",
+				idnt, &self.name, rollback_type, &self.position, inner
 			)?,
-			None => writeln!(f, "{}{} failed at {}", idnt, &self.name, &self.position)?,
+			None => writeln!(
+				f,
+				"{}{} {} at {}",
+				idnt, &self.name, rollback_type, &self.position
+			)?,
 		}
 		Ok(())
 	}
@@ -57,6 +65,7 @@ pub enum Error {
 	Mismatch {
 		message: String,
 		position: usize,
+		continuation_error: Option<Box<Error>>,
 	},
 	Conversion {
 		message: String,
@@ -90,7 +99,17 @@ impl Display for Error {
 			Error::Mismatch {
 				ref message,
 				ref position,
+				continuation_error: None,
 			} => write!(f, "Mismatch at {}: {}", position, message),
+			Error::Mismatch {
+				ref message,
+				ref position,
+				continuation_error: Some(ref continuation_error),
+			} => write!(
+				f,
+				"Mismatch at {}: {}, (cont. error: {})",
+				position, message, continuation_error
+			),
 			Error::Conversion {
 				ref message,
 				ref position,

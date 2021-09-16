@@ -24,11 +24,19 @@ fn merge_errors(name: String, pos: usize, err1: Error, err2: Error) -> Error {
 			rollbacks: RollbackRecord {
 				name,
 				position: pos,
-				typ: RollbackType::Stop,
+				typ: RollbackType::Fail,
 				inner: None,
 				previous_tracks: vec![rollbacks1, rollbacks2],
 			},
 		},
+		// TODO: remove this case
+		(err1 @ Error::Rollback { .. }, err2) => {
+			println!(
+				"merge_errors at {} losing rollback data: {:?} <<>> {:?}",
+				name, err1, err2
+			);
+			err2
+		}
 		(_, err2) => err2,
 	}
 }
@@ -70,6 +78,14 @@ fn merge_continuation_errors(
 				previous_tracks: vec![rollbacks1],
 			},
 		}),
+		// TODO: remove this case
+		(cont_err1 @ Some(Error::Rollback { .. }), cont_err2) => {
+			println!(
+				"merge_continuation_errors at {} losing rollback data: {:?} <<>> {:?}",
+				name, cont_err1, cont_err2
+			);
+			cont_err2
+		}
 		(_, cont_err2) => cont_err2,
 	}
 }
@@ -153,6 +169,20 @@ impl<'a, I, O> Parser<'a, I, O> {
 		})
 	}
 
+	pub fn debug_ok<S>(self, id: S) -> Parser<'a, I, O>
+	where
+		O: std::fmt::Debug + 'a,
+		S: AsRef<str> + 'a,
+	{
+		Parser::new(move |input: &'a [I], start: usize| {
+			let result = self.parse_at(input, start);
+			if result.is_ok() {
+				println!("[debug] {} at {}: {:?}", id.as_ref(), start, result);
+			}
+			result
+		})
+	}
+
 	/// Get input position after matching parser.
 	pub fn pos(self) -> Parser<'a, I, usize>
 	where
@@ -228,12 +258,18 @@ impl<'a, I, O> Parser<'a, I, O> {
 				}
 
 				match self.parse_at(input, pos) {
-					Ok((item, item_pos, _)) => {
+					Ok((item, item_pos, item_cont_err)) => {
 						items.push(item);
 						pos = item_pos;
+						cont_err = item_cont_err;
 					}
 					Err(err) => {
-						cont_err = Some(err);
+						cont_err = merge_continuation_errors(
+							"<Parser::repeat>".into(),
+							pos,
+							cont_err,
+							Some(err),
+						);
 						break;
 					}
 				}
@@ -247,6 +283,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 							items.len()
 						),
 						position: start,
+						continuation_error: cont_err.map(Box::new),
 					});
 				}
 			}
@@ -276,9 +313,10 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Trace parser with an identifier for rollback tracing.
-	pub fn trace(self, id: &'a str) -> Parser<'a, I, O>
+	pub fn trace<S>(self, id: S) -> Parser<'a, I, O>
 	where
 		O: 'a,
+		S: AsRef<str> + 'a,
 	{
 		Parser::new(
 			move |input: &'a [I], start: usize| match self.parse_at(input, start) {
@@ -288,9 +326,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 					pos,
 					Some(Error::Rollback {
 						rollbacks: RollbackRecord {
-							name: id.into(),
-							position: start,
-							typ: RollbackType::Fail,
+							name: id.as_ref().into(),
+							position: pos,
+							typ: RollbackType::Stop,
 							inner: None,
 							previous_tracks: vec![rollbacks],
 						},
@@ -301,9 +339,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 					pos,
 					Some(Error::Rollback {
 						rollbacks: RollbackRecord {
-							name: id.into(),
-							position: start,
-							typ: RollbackType::Fail,
+							name: id.as_ref().into(),
+							position: pos,
+							typ: RollbackType::Stop,
 							inner: Some(Box::new(cont_err)),
 							previous_tracks: vec![],
 						},
@@ -312,7 +350,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 				Err(err) => match err {
 					Error::Rollback { rollbacks } => Err(Error::Rollback {
 						rollbacks: RollbackRecord {
-							name: id.into(),
+							name: id.as_ref().into(),
 							position: start,
 							typ: RollbackType::Fail,
 							inner: None,
@@ -321,7 +359,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 					}),
 					_ => Err(Error::Rollback {
 						rollbacks: RollbackRecord {
-							name: id.into(),
+							name: id.as_ref().into(),
 							position: start,
 							typ: RollbackType::Fail,
 							inner: Some(Box::new(err)),
@@ -368,6 +406,7 @@ where
 			Err(Error::Mismatch {
 				message: "end of input reached".to_owned(),
 				position: start,
+				continuation_error: None,
 			})
 		}
 	})
@@ -386,6 +425,7 @@ where
 				Err(Error::Mismatch {
 					message: format!("expect: {}, found: {}", t, s),
 					position: start,
+					continuation_error: None,
 				})
 			}
 		} else {
@@ -411,6 +451,7 @@ where
 					return Err(Error::Mismatch {
 						message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
 						position: pos,
+						continuation_error: None,
 					});
 				}
 			} else {
@@ -431,6 +472,7 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 					return Err(Error::Mismatch {
 						message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
 						position: pos,
+						continuation_error: None,
 					});
 				}
 			} else {
@@ -461,17 +503,24 @@ where
 			loop {
 				match separator.parse_at(input, pos) {
 					Ok((_, sep_pos, _)) => match parser.parse_at(input, sep_pos) {
-						Ok((more_item, more_pos, _)) => {
+						Ok((more_item, more_pos, more_cont_err)) => {
 							items.push(more_item);
 							pos = more_pos;
+							cont_err = more_cont_err;
 						}
 						Err(err) => {
-							cont_err = Some(err);
+							cont_err = merge_continuation_errors(
+								"<list>".into(),
+								pos,
+								cont_err,
+								Some(err),
+							);
 							break;
 						}
 					},
 					Err(err) => {
-						cont_err = Some(err);
+						cont_err =
+							merge_continuation_errors("<list>".into(), pos, cont_err, Some(err));
 						break;
 					}
 				}
@@ -495,6 +544,7 @@ where
 				Err(Error::Mismatch {
 					message: format!("expect one of: {}, found: {}", set.to_str(), s),
 					position: start,
+					continuation_error: None,
 				})
 			}
 		} else {
@@ -515,6 +565,7 @@ where
 				Err(Error::Mismatch {
 					message: format!("expect none of: {}, found: {}", set.to_str(), s),
 					position: start,
+					continuation_error: None,
 				})
 			} else {
 				Ok((s.clone(), start + 1, None))
@@ -539,6 +590,7 @@ where
 				Err(Error::Mismatch {
 					message: format!("is_a predicate failed on: {}", s),
 					position: start,
+					continuation_error: None,
 				})
 			}
 		} else {
@@ -559,6 +611,7 @@ where
 				Err(Error::Mismatch {
 					message: format!("not_a predicate failed on: {}", s),
 					position: start,
+					continuation_error: None,
 				})
 			} else {
 				Ok((s.clone(), start + 1, None))
@@ -615,6 +668,7 @@ where
 			Err(Error::Mismatch {
 				message: format!("expect end of input, found: {}", s),
 				position: start,
+				continuation_error: None,
 			})
 		} else {
 			Ok(((), start, None))
@@ -629,16 +683,26 @@ impl<'a, I, O: 'a, U: 'a> Add<Parser<'a, I, U>> for Parser<'a, I, O> {
 	fn add(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
 			self.parse_at(input, start)
-				.and_then(|(out1, pos1, cont_err1)| {
-					other.parse_at(input, pos1).map(|(out2, pos2, cont_err2)| {
-						let cont_err = if pos2 == pos1 {
-							merge_continuation_errors("<Add>".into(), pos2, cont_err1, cont_err2)
-						} else {
-							cont_err2
-						};
-						((out1, out2), pos2, cont_err)
-					})
-				})
+				.and_then(
+					|(out1, pos1, cont_err1)| match other.parse_at(input, pos1) {
+						Ok((out2, pos2, cont_err2)) => {
+							let cont_err = if pos2 == pos1 {
+								merge_continuation_errors(
+									"<Add>".into(),
+									pos2,
+									cont_err1,
+									cont_err2,
+								)
+							} else {
+								cont_err2
+							};
+							Ok(((out1, out2), pos2, cont_err))
+						}
+						Err(err2) => Err(cont_err1.map_or(err2.clone(), |err1| {
+							merge_errors("<Add>".into(), pos1, err1, err2)
+						})),
+					},
+				)
 		})
 	}
 }
@@ -650,16 +714,26 @@ impl<'a, I, O: 'a, U: 'a> Sub<Parser<'a, I, U>> for Parser<'a, I, O> {
 	fn sub(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
 			self.parse_at(input, start)
-				.and_then(|(out1, pos1, cont_err1)| {
-					other.parse_at(input, pos1).map(|(_, pos2, cont_err2)| {
-						let cont_err = if pos2 == pos1 {
-							merge_continuation_errors("<Sub>".into(), pos2, cont_err1, cont_err2)
-						} else {
-							cont_err2
-						};
-						(out1, pos2, cont_err)
-					})
-				})
+				.and_then(
+					|(out1, pos1, cont_err1)| match other.parse_at(input, pos1) {
+						Ok((_, pos2, cont_err2)) => {
+							let cont_err = if pos2 == pos1 {
+								merge_continuation_errors(
+									"<Sub>".into(),
+									pos2,
+									cont_err1,
+									cont_err2,
+								)
+							} else {
+								cont_err2
+							};
+							Ok((out1, pos2, cont_err))
+						}
+						Err(err2) => Err(cont_err1.map_or(err2.clone(), |err1| {
+							merge_errors("<Sub>".into(), pos1, err1, err2)
+						})),
+					},
+				)
 		})
 	}
 }
@@ -671,15 +745,18 @@ impl<'a, I: 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> {
 	fn mul(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
 			self.parse_at(input, start)
-				.and_then(|(_, pos1, cont_err1)| {
-					other.parse_at(input, pos1).map(|(out2, pos2, cont_err2)| {
+				.and_then(|(_, pos1, cont_err1)| match other.parse_at(input, pos1) {
+					Ok((out2, pos2, cont_err2)) => {
 						let cont_err = if pos2 == pos1 {
 							merge_continuation_errors("<Mul>".into(), pos2, cont_err1, cont_err2)
 						} else {
 							cont_err2
 						};
-						(out2, pos2, cont_err)
-					})
+						Ok((out2, pos2, cont_err))
+					}
+					Err(err2) => Err(cont_err1.map_or(err2.clone(), |err1| {
+						merge_errors("<Mul>".into(), pos1, err1, err2)
+					})),
 				})
 		})
 	}
@@ -766,6 +843,7 @@ impl<'a, I, O: 'a> Not for Parser<'a, I, O> {
 				Ok(_) => Err(Error::Mismatch {
 					message: "not predicate failed".to_string(),
 					position: start,
+					continuation_error: None,
 				}),
 				Err(_) => Ok((true, start, None)),
 			},
@@ -787,7 +865,8 @@ mod tests {
 			output,
 			Err(Error::Mismatch {
 				message: "expect: 67, found: 99".to_string(),
-				position: 2
+				position: 2,
+				continuation_error: None,
 			})
 		);
 
@@ -805,7 +884,8 @@ mod tests {
 				position: 0,
 				inner: Box::new(Error::Mismatch {
 					message: "expect: 100, found: 97".to_string(),
-					position: 0
+					position: 0,
+					continuation_error: None,
 				})
 			})
 		);
