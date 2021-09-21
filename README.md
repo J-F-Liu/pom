@@ -1,3 +1,5 @@
+## This is a fork with some tracing functionality added. Please use the standard `pom` package if in doubt.
+
 # pom
 
 [![Crates.io](https://img.shields.io/crates/v/pom.svg)](https://crates.io/crates/pom)

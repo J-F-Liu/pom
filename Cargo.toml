@@ -1,16 +1,13 @@
 [package]
-name = "pom"
+name = "pom-trace"
 version = "4.0.0"
 edition = "2018"
-authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
-homepage = "https://github.com/J-F-Liu/pom"
-documentation = "https://docs.rs/crate/pom/"
-repository = "https://github.com/J-F-Liu/pom.git"
+authors = ["Junfeng Liu <china.liujunfeng@gmail.com>", "Ramon Snir <r@mon.dev>"]
+homepage = "https://github.com/ramonsnir/pom"
+documentation = "https://docs.rs/crate/pom-trace/"
+repository = "https://github.com/ramonsnir/pom.git"
 license = "MIT"
 readme = "README.md"
 description = "PEG parser combinators using operator overloading without macros."
 categories = ["parsing"]
 keywords = ["parser", "parser-combinators", "parsing", "PEG"]
-
-[badges]
-travis-ci = { repository = "J-F-Liu/pom" }
