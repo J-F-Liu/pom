@@ -134,14 +134,14 @@ impl<'a, I, O> Parser<'a, I, O> {
 	/// Convert parser result to desired value, fail in case of conversion error.
 	pub fn convert<U, E, F>(self, f: F) -> Parser<'a, I, U>
 	where
-		F: Fn(O, Option<Error>) -> ::std::result::Result<U, E> + 'a,
+		F: Fn(O, &Option<Error>) -> ::std::result::Result<U, E> + 'a,
 		E: Debug,
 		O: 'a,
 		U: 'a,
 	{
 		Parser::new(move |input: &'a [I], start: usize| {
 			self.parse_at(input, start)
-				.and_then(|(res, pos, cont_err)| match f(res, cont_err.clone()) {
+				.and_then(|(res, pos, cont_err)| match f(res, &cont_err) {
 					Ok(out) => Ok((out, pos, cont_err)),
 					Err(err) => Err(Error::Conversion {
 						message: format!("Conversion error: {:?}", err),
