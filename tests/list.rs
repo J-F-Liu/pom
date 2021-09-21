@@ -1,7 +1,7 @@
-extern crate pom;
+extern crate pom_trace;
 
-use pom::parser::*;
-use pom::Parser;
+use pom_trace::parser::*;
+use pom_trace::Parser;
 
 fn spaces() -> Parser<u8, ()> {
 	one_of(b" ").repeat(1..).discard()
