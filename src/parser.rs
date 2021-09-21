@@ -30,13 +30,13 @@ fn merge_errors(name: String, pos: usize, err1: Error, err2: Error) -> Error {
 			},
 		},
 		// TODO: remove this case
-		(err1 @ Error::Rollback { .. }, err2) => {
+		/*(err1 @ Error::Rollback { .. }, err2) => {
 			println!(
 				"merge_errors at {} losing rollback data: {:?} <<>> {:?}",
 				name, err1, err2
 			);
 			err2
-		}
+		}*/
 		(_, err2) => err2,
 	}
 }
@@ -79,13 +79,13 @@ fn merge_continuation_errors(
 			},
 		}),
 		// TODO: remove this case
-		(cont_err1 @ Some(Error::Rollback { .. }), cont_err2) => {
+		/*(cont_err1 @ Some(Error::Rollback { .. }), cont_err2) => {
 			println!(
 				"merge_continuation_errors at {} losing rollback data: {:?} <<>> {:?}",
 				name, cont_err1, cont_err2
 			);
 			cont_err2
-		}
+		}*/
 		(_, cont_err2) => cont_err2,
 	}
 }
