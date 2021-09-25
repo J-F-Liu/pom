@@ -1,6 +1,6 @@
 [package]
 name = "pom-trace"
-version = "4.0.2"
+version = "4.0.3"
 edition = "2018"
 authors = ["Junfeng Liu <china.liujunfeng@gmail.com>", "Ramon Snir <r@mon.dev>"]
 homepage = "https://github.com/ramonsnir/pom"

@@ -497,17 +497,28 @@ where
 		let mut items = vec![];
 		let mut pos = start;
 		let mut cont_err = None;
-		if let Ok((first_item, first_pos, _)) = parser.parse_at(input, pos) {
-			items.push(first_item);
-			pos = first_pos;
-			loop {
-				match separator.parse_at(input, pos) {
-					Ok((_, sep_pos, _)) => match parser.parse_at(input, sep_pos) {
-						Ok((more_item, more_pos, more_cont_err)) => {
-							items.push(more_item);
-							pos = more_pos;
-							cont_err = more_cont_err;
-						}
+		match parser.parse_at(input, pos) {
+			Ok((first_item, first_pos, _)) => {
+				items.push(first_item);
+				pos = first_pos;
+				loop {
+					match separator.parse_at(input, pos) {
+						Ok((_, sep_pos, _)) => match parser.parse_at(input, sep_pos) {
+							Ok((more_item, more_pos, more_cont_err)) => {
+								items.push(more_item);
+								pos = more_pos;
+								cont_err = more_cont_err;
+							}
+							Err(err) => {
+								cont_err = merge_continuation_errors(
+									"<list>".into(),
+									pos,
+									cont_err,
+									Some(err),
+								);
+								break;
+							}
+						},
 						Err(err) => {
 							cont_err = merge_continuation_errors(
 								"<list>".into(),
@@ -517,13 +528,11 @@ where
 							);
 							break;
 						}
-					},
-					Err(err) => {
-						cont_err =
-							merge_continuation_errors("<list>".into(), pos, cont_err, Some(err));
-						break;
 					}
 				}
+			}
+			Err(err) => {
+				cont_err = Some(err);
 			}
 		}
 		Ok((items, pos, cont_err))
