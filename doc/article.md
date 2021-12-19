@@ -322,7 +322,6 @@ I thought deeply about how to implement parser combinator using language constru
 
    *Cons*: Macros themselves are difficult to read, write and debug.
 
-   Crate [nom](https://github.com/Geal/nom) is using this approach.
 
 According to above comparison, parser as struct is the best approach. At first I choose to use nom to create a PDF parser, it turns out a special PDF feature blocked me.
 When parsing a PDF stream object, it's length may be a referenced object, hence the need to get the length from a reader.
