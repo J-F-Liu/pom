@@ -81,13 +81,12 @@ For example, `A * B * C - D + E - F` will return the results of C and E as a pai
 ## Example code
 
 ```rust
-extern crate pom;
 use pom::parser::*;
 
 let input = b"abcde";
 let parser = sym(b'a') * none_of(b"AB") - sym(b'c') + seq(b"de");
 let output = parser.parse(input);
-assert_eq!(output, Ok( (b'b', vec![b'd', b'e']) ) );
+assert_eq!(output, Ok( (b'b', vec![b'd', b'e'].as_slice()) ) );
 ```
 
 ### Example JSON parser
