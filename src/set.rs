@@ -57,24 +57,12 @@ impl<T> Set<T> for RangeFull {
 	}
 }
 
-macro_rules! impl_set_for_array {
-	( $($n:expr),+ ) => {
-		$(
-			impl Set<u8> for [u8; $n] {
-				fn contains(&self, elem: &u8) -> bool {
-					(self as &[u8]).contains(elem)
-				}
+impl<const N: usize> Set<u8> for [u8; N] {
+	fn contains(&self, elem: &u8) -> bool {
+		(self as &[u8]).contains(elem)
+	}
 
-				fn to_str(&self) -> &str {
-					str::from_utf8(self).unwrap_or("<byte array>")
-				}
-			}
-		)+
-	};
+	fn to_str(&self) -> &str {
+		str::from_utf8(self).unwrap_or("<byte array>")
+	}
 }
-
-impl_set_for_array!(
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-	26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
-	50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
-);
