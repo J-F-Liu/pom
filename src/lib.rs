@@ -1,6 +1,7 @@
 pub mod range;
 mod result;
 pub mod set;
+pub mod utf8;
 
 /// Contains predefined parsers and combinators.
 pub mod parser;
