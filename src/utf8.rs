@@ -22,11 +22,6 @@ impl<'a, O> Parser<'a, O> {
 		Parser( parser::Parser::new(parse) )
 	}
 
-	/// Convert to non-UTF-8-validated, normal parser
-	pub fn as_bytes(self) -> parser::Parser<'a, u8, O> {
-		return self.0
-	}
-
 	/// Collect all matched input symbols.
 	// This method is the primary reason utf8::Parser exists at all.
 	pub fn collect(self) -> Parser<'a, &'a str>
@@ -50,6 +45,12 @@ impl<'a, O> Parser<'a, O> {
 		{ self.0.parse(input) }
 	pub fn repeat<R>(self, range: R) -> Parser<'a, Vec<O>> where R: RangeArgument<usize> + Debug + 'a, O: 'a
 		{ Parser( self.0.repeat(range) ) }
+}
+
+impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
+    fn from(parser: Parser<'a, O>) -> Self {
+        parser.0 // Simply unwrap
+    }
 }
 
 /// Match any UTF-8 character.
