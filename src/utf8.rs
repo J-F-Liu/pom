@@ -54,18 +54,15 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 }
 
 /// Match any UTF-8 character.
-pub fn any<'a>() -> Parser<'a, &'a str>
+pub fn any<'a>() -> Parser<'a, char>
 {
 	Parser::new(|input: &[u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
-		if let Some(_) = ch {
+		if let Some(ch) = ch {
 			let pos = start+size;
-			let result = &input[start..pos];
-			// UNSAFE: Because slice is validated by bstr::decode_utf8, it is known valid UTF-8
-			let result_str = unsafe { str::from_utf8_unchecked(result) };
 
-			Ok((result_str, pos))
+			Ok((ch, pos))
 		} else {
 			if size == 0 {
 				Err(Error::Mismatch {
@@ -82,6 +79,38 @@ pub fn any<'a>() -> Parser<'a, &'a str>
 	})
 }
 
+/// Match specific UTF-8 character.
+pub fn sym<'a>(tag: char) -> Parser<'a, char>
+{
+	Parser::new(move |input: &[u8], start: usize| {
+		let (ch, size) = decode_utf8(&input[start..]);
+
+		if let Some(ch) = ch {
+			if ch == tag {
+				let pos = start+size;
+
+				Ok((ch, pos))
+			} else {
+				Err(Error::Mismatch {
+					message: format!("expect: {}, found: {}", tag, ch),
+					position: start,
+				})
+			}
+		} else {
+			if size == 0 {
+				Err(Error::Mismatch {
+					message: "end of input reached".to_owned(),
+					position: start,
+				})
+			} else {
+				Err(Error::Mismatch {
+					message: "not UTF-8".to_owned(),
+					position: start,
+				})
+			}
+		}
+	})
+}
 
 /// Success when sequence of chars matches current input.
 pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str>

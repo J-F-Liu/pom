@@ -26,7 +26,7 @@ Director: Alejandro Jodorowsky
 
 	fn positive<'a>() -> Parser<'a, i32> {
 //		let integer = (one_of("123456789") - one_of("0123456789").repeat(0..)) | sym(b'0'); // TODO
-		let digit = seq("0") | seq("1") | seq("2") | seq("3") | seq("4") | seq("5") | seq("6") | seq("7") | seq("8") | seq("9");
+		let digit = sym('0') | sym('1') | sym('2') | sym('3') | sym('4') | sym('5') | sym('6') | sym('7') | sym('8') | sym('9');
 		let integer = digit.discard().repeat(1..);
 		integer.collect().convert(|x|x.parse::<i32>())
 	}
