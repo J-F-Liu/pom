@@ -48,6 +48,11 @@ impl<'a, O> Parser<'a, O> {
 		self.0.parse_at(input, start)
 	}
 
+	/// Apply the parser to parse input.
+	pub fn parse_str(&self, input: &'a str) -> Result<O> {
+		self.0.parse(input.as_bytes())
+	}
+
 	/// Convert parser result to desired value.
 	pub fn map<U, F>(self, f: F) -> Parser<'a, U>
 	where

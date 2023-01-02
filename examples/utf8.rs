@@ -52,7 +52,7 @@ Director: Alejandro Jodorowsky
 		for line in input.lines()  {
 			if !line.is_empty() { // Skip blank lines without parsing
 				// Parse line
-				match parser.parse(line.as_bytes()).unwrap() {
+				match parser.parse_str(line).unwrap() {
 					DataLine::Title(s) =>    title_opt = Some(s),
 					DataLine::Director(s) => director_opt = Some(s),
 					DataLine::Year(s) =>     year_opt = Some(s),
