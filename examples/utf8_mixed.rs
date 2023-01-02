@@ -21,7 +21,7 @@ fn main() {
 		utf8::any().repeat(0..).collect()
 	}
 
-	// Demo parser does not verify that the claimed length matches the actual length (but checking so is not much more code)
+	// Demo parser does not verify that the claimed length matches the actual length (but checking so is simple with >>)
 	let parser =
 		  (sym(0xdb) * any().repeat(4) * rest_as_str()) // 2^32-1 format
 		| (sym(0xda) * any().repeat(2) * rest_as_str()) // 2^16-1 format

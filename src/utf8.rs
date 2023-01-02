@@ -7,7 +7,7 @@ use crate::set::Set;
 use std::str;
 use std::fmt::Debug;
 use bstr::decode_utf8;
-use std::ops::{Add, BitOr, Mul, Shr, Sub};
+use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
 
 // / Parser combinator.
 //type Parse<'a, O> = dyn Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a;
@@ -352,6 +352,20 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, ()> {
 	})
 }
 
+/// Chain two parsers where the second parser depends on the first's result.
+impl<'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, U> + 'a> Shr<F> for Parser<'a, O> {
+	type Output = Parser<'a, U>;
+
+	fn shr(self, other: F) -> Self::Output {
+		Parser::new(move |input: &'a [u8], start: usize| {
+			(self.0.method)(input, start).and_then(|(out, pos)| (other(out).0.method)(input, pos))
+		})
+	}
+}
+
+// Note: There are no "degrade to parser::Parser" implementations for >>
+// because Rust cannot tell the difference between an FN(O)->U and an FN(O)->V.
+
 // Remaining functions in file only delegate to base parser::Parser
 
 /// Always succeeds, consume no input.
@@ -385,8 +399,6 @@ pub fn end<'a, I>() -> Parser<'a, ()>
 {
 	Parser( parser::end() )
 }
-
-// Functions delegating normal parser::Parser
 
 // And, Sub and Mul are similar enough we can implement them with macros
 
@@ -470,14 +482,20 @@ impl<'a, O: 'a> BitOr<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 	}
 }
 
-/// Chain two parsers where the second parser depends on the first's result.
-impl<'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, U> + 'a> Shr<F> for Parser<'a, O> {
-	type Output = Parser<'a, U>;
+/// And predicate
+impl<'a, O: 'a> Neg for Parser<'a, O> {
+	type Output = Parser<'a, bool>;
 
-	fn shr(self, other: F) -> Self::Output {
-		Parser(self.0 >> other.0)
+	fn neg(self) -> Self::Output {
+		Parser( -self.0 )
 	}
 }
 
-// Note: There are no "degrade" implementations for >> because Rust cannot tell the difference between an O->x and an O->y. 
+/// Not predicate
+impl<'a, O: 'a> Not for Parser<'a, O> {
+	type Output = Parser<'a, bool>;
 
+	fn not(self) -> Self::Output {
+		Parser( !self.0 )
+	}
+}
