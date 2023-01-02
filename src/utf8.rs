@@ -319,6 +319,39 @@ where
 	})
 }
 
+/// Read n chars.
+pub fn take<'a>(n: usize) -> Parser<'a, &'a str> {
+	Parser::new(move |input: &'a [u8], start: usize| {
+		let mut byte_pos = start;
+		for _ in 0..n {
+			let (ch, size) = decode_utf8(&input[start..]);
+			if ch.is_none() {
+				return no_utf8(byte_pos, size)
+			}
+			byte_pos += size;
+		}
+		let result = &input[start..byte_pos];
+		// UNSAFE: Because every char has been checked by decode_utf8, this string is known utf8
+		let result_str = unsafe { str::from_utf8_unchecked(result) };
+		Ok((result_str, byte_pos))
+	})
+}
+
+/// Skip n symbols.
+pub fn skip<'a, I>(n: usize) -> Parser<'a, ()> {
+	Parser::new(move |input: &'a [u8], start: usize| {
+		let mut byte_pos = start;
+		for _ in 0..n {
+			let (ch, size) = decode_utf8(&input[start..]);
+			if ch.is_none() {
+				return no_utf8(byte_pos, size)
+			}
+			byte_pos += size;
+		}
+		Ok(((), byte_pos))
+	})
+}
+
 // Remaining functions in file only delegate to base parser::Parser
 
 /// Always succeeds, consume no input.
@@ -336,6 +369,21 @@ where
 	U: 'a,
 {
 	Parser( parser::list(item.0, separator.0) )
+}
+
+/// Call a parser factory, can be used to create recursive parsers.
+pub fn call<'a, O, F>(parser_factory: F) -> Parser<'a, O>
+where
+	O: 'a,
+	F: Fn() -> Parser<'a, O> + 'a,
+{
+	Parser( parser::call(move || parser_factory().0) )
+}
+
+/// Success when end of input is reached.
+pub fn end<'a, I>() -> Parser<'a, ()>
+{
+	Parser( parser::end() )
 }
 
 // Functions delegating normal parser::Parser
