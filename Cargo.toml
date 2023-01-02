@@ -17,3 +17,7 @@ travis-ci = { repository = "J-F-Liu/pom" }
 
 [dependencies] 
 bstr = {version = "1.1.0", features = []} # Only uses one function, so no features needed.
+
+[features]
+default = ["utf8"]
+utf8 = []
