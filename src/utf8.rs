@@ -7,7 +7,7 @@ use crate::set::Set;
 use std::str;
 use std::fmt::Debug;
 use bstr::decode_utf8;
-use std::ops::{Add, BitOr, Mul, Sub};
+use std::ops::{Add, BitOr, Mul, Shr, Sub};
 
 // / Parser combinator.
 //type Parse<'a, O> = dyn Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a;
@@ -388,9 +388,11 @@ pub fn end<'a, I>() -> Parser<'a, ()>
 
 // Functions delegating normal parser::Parser
 
+// And, Sub and Mul are similar enough we can implement them with macros
 
 macro_rules! utf_op {
-    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
+    	#[doc=$doc]
 		impl<'a, Left: 'a, Right: 'a> $impl_name<Parser<'a, Right>> for Parser<'a, Left> {
 			type Output = Parser<'a, $return_type>;
 
@@ -402,7 +404,8 @@ macro_rules! utf_op {
 }
 
 macro_rules! utf_u8_op {
-    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
+    	#[doc=concat!($doc, " (but degrade to non-utf8 parser)")]
 		impl<'a, Left: 'a, Right: 'a> $impl_name<parser::Parser<'a, u8, Right>> for Parser<'a, Left> {
 			type Output = parser::Parser<'a, u8, $return_type>;
 
@@ -414,7 +417,8 @@ macro_rules! utf_u8_op {
 }
 
 macro_rules! u8_utf_op {
-    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
+    	#[doc=concat!($doc, " (but degrade to non-utf8 parser)")]
 		impl<'a, Left: 'a, Right: 'a> $impl_name<Parser<'a, Right>> for parser::Parser<'a, u8, Left> {
 			type Output = parser::Parser<'a, u8, $return_type>;
 
@@ -426,21 +430,18 @@ macro_rules! u8_utf_op {
 }
 
 macro_rules! all_op {
-    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
-    	utf_op!($impl_name, $fn_name, $op, $return_type);
-    	utf_u8_op!($impl_name, $fn_name, $op, $return_type);
-    	u8_utf_op!($impl_name, $fn_name, $op, $return_type);
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
+    	utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
+    	utf_u8_op!($impl_name, $fn_name, $op, $return_type, $doc);
+    	u8_utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
     }
 }
 
-// Sequence reserve value
-all_op!(Add, add, +, (Left, Right));
+all_op!(Add, add, +, (Left, Right), "Sequence reserve value");
 
-// Sequence discard second value
-all_op!(Sub, sub, -, Left);
+all_op!(Sub, sub, -, Left, "Sequence discard second value");
 
-// Sequence discard first value
-all_op!(Mul, mul, *, Right);
+all_op!(Mul, mul, *, Right, "Sequence discard first value");
 
 /// Ordered choice
 impl<'a, O: 'a> BitOr for Parser<'a, O> {
@@ -451,8 +452,7 @@ impl<'a, O: 'a> BitOr for Parser<'a, O> {
 	}
 }
 
-/// Ordered choice
-/// (but degrade to non-utf8 parser)
+/// Ordered choice (but degrade to non-utf8 parser)
 impl<'a, O: 'a> BitOr<parser::Parser<'a, u8, O>> for Parser<'a, O> {
 	type Output = parser::Parser<'a, u8, O>;
 
@@ -461,8 +461,7 @@ impl<'a, O: 'a> BitOr<parser::Parser<'a, u8, O>> for Parser<'a, O> {
 	}
 }
 
-/// Ordered choice
-/// (but degrade to non-utf8 parser)
+/// Ordered choice (but degrade to non-utf8 parser)
 impl<'a, O: 'a> BitOr<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 	type Output = parser::Parser<'a, u8, O>;
 
@@ -470,3 +469,15 @@ impl<'a, O: 'a> BitOr<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 		self | other.0
 	}
 }
+
+/// Chain two parsers where the second parser depends on the first's result.
+impl<'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, U> + 'a> Shr<F> for Parser<'a, O> {
+	type Output = Parser<'a, U>;
+
+	fn shr(self, other: F) -> Self::Output {
+		Parser(self.0 >> other.0)
+	}
+}
+
+// Note: There are no "degrade" implementations for >> because Rust cannot tell the difference between an O->x and an O->y. 
+
