@@ -7,7 +7,7 @@ use crate::set::Set;
 use std::str;
 use std::fmt::Debug;
 use bstr::decode_utf8;
-use std::ops::{BitOr, Mul};
+use std::ops::{Add, BitOr, Mul, Sub};
 
 // / Parser combinator.
 //type Parse<'a, O> = dyn Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a;
@@ -387,17 +387,60 @@ pub fn end<'a, I>() -> Parser<'a, ()>
 }
 
 // Functions delegating normal parser::Parser
-// TODO: Fill out
-// TODO: Create mixed-type versions that degrade to parser::Parser
 
-/// Sequence discard first value
-impl<'a, O: 'a, U: 'a> Mul<Parser<'a, U>> for Parser<'a, O> {
-	type Output = Parser<'a, U>;
 
-	fn mul(self, other: Parser<'a, U>) -> Self::Output {
-		Parser(self.0 * other.0)
-	}
+macro_rules! utf_op {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+		impl<'a, Left: 'a, Right: 'a> $impl_name<Parser<'a, Right>> for Parser<'a, Left> {
+			type Output = Parser<'a, $return_type>;
+
+			fn $fn_name (self, other: Parser<'a, Right>) -> Self::Output {
+				Parser(self.0 $op other.0)
+			}
+		}
+    };
 }
+
+macro_rules! utf_u8_op {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+		impl<'a, Left: 'a, Right: 'a> $impl_name<parser::Parser<'a, u8, Right>> for Parser<'a, Left> {
+			type Output = parser::Parser<'a, u8, $return_type>;
+
+			fn $fn_name (self, other: parser::Parser<'a, u8, Right>) -> Self::Output {
+				self.0 $op other
+			}
+		}
+    };
+}
+
+macro_rules! u8_utf_op {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+		impl<'a, Left: 'a, Right: 'a> $impl_name<Parser<'a, Right>> for parser::Parser<'a, u8, Left> {
+			type Output = parser::Parser<'a, u8, $return_type>;
+
+			fn $fn_name (self, other: Parser<'a, Right>) -> Self::Output {
+				self $op other.0
+			}
+		}
+    };
+}
+
+macro_rules! all_op {
+    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty ) => {
+    	utf_op!($impl_name, $fn_name, $op, $return_type);
+    	utf_u8_op!($impl_name, $fn_name, $op, $return_type);
+    	u8_utf_op!($impl_name, $fn_name, $op, $return_type);
+    }
+}
+
+// Sequence reserve value
+all_op!(Add, add, +, (Left, Right));
+
+// Sequence discard second value
+all_op!(Sub, sub, -, Left);
+
+// Sequence discard first value
+all_op!(Mul, mul, *, Right);
 
 /// Ordered choice
 impl<'a, O: 'a> BitOr for Parser<'a, O> {
@@ -405,5 +448,25 @@ impl<'a, O: 'a> BitOr for Parser<'a, O> {
 
 	fn bitor(self, other: Parser<'a, O>) -> Self::Output {
 		Parser(self.0 | other.0)
+	}
+}
+
+/// Ordered choice
+/// (but degrade to non-utf8 parser)
+impl<'a, O: 'a> BitOr<parser::Parser<'a, u8, O>> for Parser<'a, O> {
+	type Output = parser::Parser<'a, u8, O>;
+
+	fn bitor(self, other: parser::Parser<'a, u8, O>) -> Self::Output {
+		self.0 | other
+	}
+}
+
+/// Ordered choice
+/// (but degrade to non-utf8 parser)
+impl<'a, O: 'a> BitOr<Parser<'a, O>> for parser::Parser<'a, u8, O> {
+	type Output = parser::Parser<'a, u8, O>;
+
+	fn bitor(self, other: Parser<'a, O>) -> Self::Output {
+		self | other.0
 	}
 }
