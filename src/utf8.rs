@@ -269,6 +269,56 @@ where
 	})
 }
 
+/// Success when predicate returns true on current input symbol.
+pub fn is_a<'a, F>(predicate: F) -> Parser<'a, char>
+where
+	F: Fn(char) -> bool + 'a,
+{
+	Parser::new(move |input: &'a [u8], start: usize| {
+		let (ch, size) = decode_utf8(&input[start..]);
+
+		if let Some(ch) = ch {
+			if predicate(ch) {
+				let pos = start+size;
+
+				Ok((ch, pos))
+			} else {
+				Err(Error::Mismatch {
+					message: format!("is_a predicate failed on: {}", ch),
+					position: start,
+				})
+			}
+		} else {
+			no_utf8(start, size)
+		}
+	})
+}
+
+/// Success when predicate returns false on current input symbol.
+pub fn not_a<'a, F>(predicate: F) -> Parser<'a, char>
+where
+	F: Fn(char) -> bool + 'a,
+{
+	Parser::new(move |input: &'a [u8], start: usize| {
+		let (ch, size) = decode_utf8(&input[start..]);
+
+		if let Some(ch) = ch {
+			if !predicate(ch) {
+				let pos = start+size;
+
+				Ok((ch, pos))
+			} else {
+				Err(Error::Mismatch {
+					message: format!("is_a predicate failed on: {}", ch),
+					position: start,
+				})
+			}
+		} else {
+			no_utf8(start, size)
+		}
+	})
+}
+
 // Remaining functions in file only delegate to base parser::Parser
 
 /// Always succeeds, consume no input.
