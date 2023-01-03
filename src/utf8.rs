@@ -357,6 +357,60 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, ()> {
 	})
 }
 
+/// Read n bytes exactly.
+pub fn take_bytes<'a>(n: usize) -> Parser<'a, &'a str> {
+	Parser::new(move |input: &'a [u8], start: usize| {
+		// FIXME: This runs in linear time because it checks each character.
+		// If we could remember which inputs were passed in from parse_str() instead of parse(),
+		// we could assume the characters are valid utf8 and run this in constant time by only checking
+		// the final character using bstr::decode_last_utf8.
+		let mut byte_pos = start;
+		loop {
+			let (ch, size) = decode_utf8(&input[start..]);
+			if ch.is_none() {
+				return no_utf8(byte_pos, size)
+			}
+			byte_pos += size;
+			if byte_pos > n {
+				return Err(Error::Mismatch {
+					message: "range splits a UTF-8 character".to_owned(),
+					position: start,
+				})
+			}
+			if byte_pos == n {
+				let result = &input[start..byte_pos];
+				// UNSAFE: Because every char has been checked by decode_utf8, this string is known utf8
+				let result_str = unsafe { str::from_utf8_unchecked(result) };
+				return Ok((result_str, byte_pos))
+			}
+		}		
+	})
+}
+
+/// Skip n bytes exactly.
+pub fn skip_bytes<'a>(n: usize) -> Parser<'a, ()> {
+	Parser::new(move |input: &'a [u8], start: usize| {
+		// FIXME: See note on take_bytes.
+		let mut byte_pos = start;
+		loop {
+			let (ch, size) = decode_utf8(&input[start..]);
+			if ch.is_none() {
+				return no_utf8(byte_pos, size)
+			}
+			byte_pos += size;
+			if byte_pos > n {
+				return Err(Error::Mismatch {
+					message: "range splits a UTF-8 character".to_owned(),
+					position: start,
+				})
+			}
+			if byte_pos == n {
+				return Ok(((), byte_pos))
+			}
+		}
+	})
+}
+
 /// Chain two parsers where the second parser depends on the first's result.
 impl<'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, U> + 'a> Shr<F> for Parser<'a, O> {
 	type Output = Parser<'a, U>;
