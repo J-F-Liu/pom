@@ -31,11 +31,11 @@ pub fn oct_digit(term: u8) -> bool {
 /// Recognises a space or tab.
 #[inline]
 pub fn space(term: u8) -> bool {
-	term == b' ' || term == b'\t'
+	matches!(term, b' ' | b'\t')
 }
 
 /// Recognises a space, tab, line feed, or carriage return.
 #[inline]
 pub fn multispace(term: u8) -> bool {
-	space(term) || term == b'\n' || term == b'\r'
+	space(term) || matches!(term, b'\n' | b'\r')
 }
