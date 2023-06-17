@@ -363,18 +363,14 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if set.contains(s) {
-				Err(Error::Mismatch {
-					message: format!("expect none of: {}, found: {}", set.to_str(), s),
-					position: start,
-				})
-			} else {
-				Ok((s.clone(), start + 1))
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else {return Err(Error::Incomplete) };
+		if set.contains(s) {
+			return Err(Error::Mismatch {
+				message: format!("expect none of: {}, found: {}", set.to_str(), s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -385,18 +381,15 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if predicate(s.clone()) {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("is_a predicate failed on: {}", s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if !predicate(s.clone()) {
+			return Err(Error::Mismatch {
+				message: format!("is_a predicate failed on: {}", s),
+				position: start,
+			});
 		}
+
+		Ok((s.clone(), start + 1))
 	})
 }
 
