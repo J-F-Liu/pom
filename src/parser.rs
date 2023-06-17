@@ -225,14 +225,13 @@ where
 	I: Clone,
 {
 	Parser::new(|input: &[I], start: usize| {
-		if let Some(s) = input.get(start) {
-			Ok((s.clone(), start + 1))
-		} else {
-			Err(Error::Mismatch {
+		let Some(s) = input.get(start) else {
+			return Err(Error::Mismatch {
 				message: "end of input reached".to_owned(),
 				position: start,
 			})
-		}
+		};
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -242,18 +241,14 @@ where
 	I: Clone + PartialEq + Display,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if t == *s {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect: {}, found: {}", t, s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if t != *s {
+			return Err(Error::Mismatch {
+				message: format!("expect: {}, found: {}", t, s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -269,15 +264,12 @@ where
 			if index == tag.len() {
 				return Ok((tag, pos));
 			}
-			if let Some(s) = input.get(pos) {
-				if tag[index] != *s {
-					return Err(Error::Mismatch {
-						message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(s) = input.get(pos) else { return Err(Error::Incomplete) };
+			if tag[index] != *s {
+				return Err(Error::Mismatch {
+					message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
+					position: pos,
+				});
 			}
 			index += 1;
 		}
@@ -289,15 +281,12 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 	Parser::new(move |input: &'a [char], start: usize| {
 		let mut pos = start;
 		for c in tag.chars() {
-			if let Some(&s) = input.get(pos) {
-				if c != s {
-					return Err(Error::Mismatch {
-						message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(&s) = input.get(pos) else { return Err(Error::Incomplete) };
+			if c != s {
+				return Err(Error::Mismatch {
+					message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
+					position: pos,
+				});
 			}
 			pos += 1;
 		}
@@ -341,18 +330,14 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if set.contains(s) {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect one of: {}, found: {}", set.to_str(), s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
-		}
+		let Some(s) = input.get(start) else {return  Err(Error::Incomplete) };
+		if !set.contains(s) {
+			return Err(Error::Mismatch {
+				message: format!("expect one of: {}, found: {}", set.to_str(), s),
+				position: start,
+			});
+		};
+		Ok((s.clone(), start + 1))
 	})
 }
 
