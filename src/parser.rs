@@ -14,11 +14,11 @@ pub struct Parser<'a, I, O> {
 
 impl<'a, I, O> Parser<'a, I, O> {
 	/// Create new parser.
-	pub fn new<P>(parse: P) -> Parser<'a, I, O>
+	pub fn new<P>(parse: P) -> Self
 	where
 		P: Fn(&'a [I], usize) -> Result<(O, usize)> + 'a,
 	{
-		Parser {
+		Self {
 			method: Box::new(parse),
 		}
 	}
@@ -66,14 +66,14 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Cache parser output result to speed up backtracking.
-	pub fn cache(self) -> Parser<'a, I, O>
+	pub fn cache(self) -> Self
 	where
 		O: Clone + 'a,
 	{
 		use std::cell::RefCell;
 		use std::collections::HashMap;
 		let results = RefCell::new(HashMap::new());
-		Parser::new(move |input: &'a [I], start: usize| {
+		Self::new(move |input: &'a [I], start: usize| {
 			let key = (start, format!("{:p}", &self.method));
 			results
 				.borrow_mut()
@@ -177,7 +177,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Give parser a name to identify parsing errors.
-	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
+	pub fn name(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
@@ -197,7 +197,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Mark parser as expected, abort early when failed in ordered choice.
-	pub fn expect(self, name: &'a str) -> Parser<'a, I, O>
+	pub fn expect(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
