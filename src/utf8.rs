@@ -17,11 +17,11 @@ pub struct Parser<'a, O>(parser::Parser<'a, u8, O>);
 
 impl<'a, O> Parser<'a, O> {
 	/// Create new parser.
-	pub fn new<P>(parse: P) -> Parser<'a, O>
+	pub fn new<P>(parse: P) -> Self
 	where
 		P: Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a,
 	{
-		Parser(parser::Parser::new(parse))
+		Self(parser::Parser::new(parse))
 	}
 
 	/// Collect all matched input symbols.
@@ -75,11 +75,11 @@ impl<'a, O> Parser<'a, O> {
 	}
 
 	/// Cache parser output result to speed up backtracking.
-	pub fn cache(self) -> Parser<'a, O>
+	pub fn cache(self) -> Self
 	where
 		O: Clone + 'a,
 	{
-		Parser(self.0.cache())
+		Self(self.0.cache())
 	}
 
 	/// Get input position after matching parser.
@@ -119,19 +119,19 @@ impl<'a, O> Parser<'a, O> {
 	}
 
 	/// Give parser a name to identify parsing errors.
-	pub fn name(self, name: &'a str) -> Parser<'a, O>
+	pub fn name(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
-		Parser(self.0.name(name))
+		Self(self.0.name(name))
 	}
 
 	/// Mark parser as expected, abort early when failed in ordered choice.
-	pub fn expect(self, name: &'a str) -> Parser<'a, O>
+	pub fn expect(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
-		Parser(self.0.expect(name))
+		Self(self.0.expect(name))
 	}
 }
 
