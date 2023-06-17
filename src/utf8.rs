@@ -509,10 +509,10 @@ all_op!(Mul, mul, *, Right, "Sequence discard first value");
 
 /// Ordered choice
 impl<'a, O: 'a> BitOr for Parser<'a, O> {
-	type Output = Parser<'a, O>;
+	type Output = Self;
 
-	fn bitor(self, other: Parser<'a, O>) -> Self::Output {
-		Parser(self.0 | other.0)
+	fn bitor(self, other: Self) -> Self {
+		Self(self.0 | other.0)
 	}
 }
 

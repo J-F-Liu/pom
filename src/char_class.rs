@@ -19,7 +19,7 @@ pub fn alphanum(term: u8) -> bool {
 /// Recognises a hexadecimal digit, `0-9a-fA-F`.
 #[inline]
 pub fn hex_digit(term: u8) -> bool {
-	(0x30..=0x39).contains(&term) || (0x41..=0x46).contains(&term) || (0x61..=0x66).contains(&term)
+	matches!(term, 0x30..=0x39 | 0x41..=0x46 | 0x61..=0x66)
 }
 
 /// Recognises an octal digit, `0-7`.
