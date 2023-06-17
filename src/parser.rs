@@ -153,12 +153,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 					Unbounded => (),
 				}
 
-				if let Ok((item, item_pos)) = (self.method)(input, pos) {
-					items.push(item);
-					pos = item_pos;
-				} else {
-					break;
-				}
+				let Ok((item, item_pos)) = (self.method)(input, pos) else { break };
+				items.push(item);
+				pos = item_pos;
 			}
 			if let Included(&min_count) = range.start() {
 				if items.len() < min_count {
@@ -385,18 +382,14 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if predicate(s.clone()) {
-				Err(Error::Mismatch {
-					message: format!("not_a predicate failed on: {}", s),
-					position: start,
-				})
-			} else {
-				Ok((s.clone(), start + 1))
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if predicate(s.clone()) {
+			return Err(Error::Mismatch {
+				message: format!("not_a predicate failed on: {}", s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 
