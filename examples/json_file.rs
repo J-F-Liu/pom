@@ -90,6 +90,6 @@ pub fn json<'a>() -> Parser<'a, u8, JsonValue> {
 fn main() {
 	let mut file = File::open("examples/test.json").unwrap();
 	let mut input: Vec<u8> = Vec::new();
-	file.read_to_end(&mut input);
+	file.read_to_end(&mut input).expect("read test.json");
 	println!("{:?}", json().parse(input.as_slice()));
 }

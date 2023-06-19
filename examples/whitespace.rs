@@ -72,7 +72,7 @@ fn container<'a>() -> Parser<'a, u8, Container> {
 }
 
 fn mylang<'a>() -> Parser<'a, u8, Vec<Container>> {
-	(whitespace() * list(call(container), whitespace()))
+	whitespace() * list(call(container), whitespace())
 }
 
 fn main() -> Result<(), ()> {

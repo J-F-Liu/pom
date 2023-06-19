@@ -1,7 +1,7 @@
 [package]
 name = "pom"
-version = "3.2.0"
-edition = "2018"
+version = "3.3.0"
+edition = "2021"
 authors = ["Junfeng Liu <china.liujunfeng@gmail.com>"]
 homepage = "https://github.com/J-F-Liu/pom"
 documentation = "https://docs.rs/crate/pom/"
@@ -15,8 +15,9 @@ keywords = ["parser", "parser-combinators", "parsing", "PEG"]
 [badges]
 travis-ci = { repository = "J-F-Liu/pom" }
 
-[dependencies] 
-bstr = {version = "1.1.0", features = []} # Only uses one function, so no features needed.
+[dependencies]
+bstr = { version = "1.1.0", features = [
+] } # Only uses one function, so no features needed.
 
 [features]
 default = ["utf8"]
