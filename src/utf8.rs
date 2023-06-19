@@ -143,17 +143,15 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 
 // Helper for functions that decode_utf8 and fail
 fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
-	if size == 0 {
-		Err(Error::Mismatch {
-			message: "end of input reached".to_owned(),
-			position: start,
+	Err(Error::Mismatch {
+		message: (if size == 0 {
+			"end of input reached"
+		} else {
+			"not UTF-8"
 		})
-	} else {
-		Err(Error::Mismatch {
-			message: "not UTF-8".to_owned(),
-			position: start,
-		})
-	}
+		.to_owned(),
+		position: start,
+	})
 }
 
 /// Match any UTF-8 character.
@@ -161,13 +159,9 @@ pub fn any<'a>() -> Parser<'a, char> {
 	Parser::new(|input: &[u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
-		if let Some(ch) = ch {
-			let pos = start + size;
-
-			Ok((ch, pos))
-		} else {
-			no_utf8(start, size)
-		}
+		let Some(ch) = ch else { return no_utf8(start, size) };
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
@@ -176,20 +170,15 @@ pub fn sym<'a>(tag: char) -> Parser<'a, char> {
 	Parser::new(move |input: &[u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
-		if let Some(ch) = ch {
-			if ch == tag {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect: {}, found: {}", tag, ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let Some(ch) = ch else { return no_utf8(start, size) };
+		if ch != tag {
+			return Err(Error::Mismatch {
+				message: format!("expect: {}, found: {}", tag, ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
