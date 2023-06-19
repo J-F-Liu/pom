@@ -1,9 +1,12 @@
 use super::{Error, Result};
-use crate::range::Bound::*;
-use crate::range::RangeArgument;
-use crate::set::Set;
-use std::fmt::{Debug, Display};
-use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
+use crate::{
+	range::{Bound::*, RangeArgument},
+	set::Set,
+};
+use std::{
+	fmt::{Debug, Display},
+	ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub},
+};
 
 type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
 

@@ -304,20 +304,15 @@ where
 	Parser::new(move |input: &'a [u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
-		if let Some(ch) = ch {
-			if !predicate(ch) {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("is_a predicate failed on: {}", ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let Some(ch) = ch else { return no_utf8(start, size) };
+		if predicate(ch) {
+			return Err(Error::Mismatch {
+				message: format!("is_a predicate failed on: {}", ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
