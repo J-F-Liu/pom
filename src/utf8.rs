@@ -143,18 +143,18 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 
 pub fn decode(slice: &[u8], start: usize) -> Result<(char, usize)> {
 	let (ch, size) = decode_utf8(&slice[start..]);
-	let Some(ch) = ch else { return no_utf8(start, size); };
+	let Some(ch) = ch else { return no_utf8(start, size) };
 	Ok((ch, size))
 }
 
 // Helper for functions that decode_utf8 and fail
 fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
 	Err(Error::Mismatch {
-		message: (if size == 0 {
+		message: if size == 0 {
 			"end of input reached"
 		} else {
 			"not UTF-8"
-		})
+		}
 		.to_owned(),
 		position: start,
 	})

@@ -372,7 +372,6 @@ where
 				position: start,
 			});
 		}
-
 		Ok((s.clone(), start + 1))
 	})
 }
