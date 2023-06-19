@@ -1,27 +1,27 @@
 // Variants of parser functions specialized for matching UTF-8 strings and returning chars
 
-use super::{Error, Result};
 use super::parser;
+use super::{Error, Result};
 use crate::range::RangeArgument;
 use crate::set::Set;
-use std::str;
-use std::fmt::Debug;
 use bstr::decode_utf8;
+use std::fmt::Debug;
 use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
+use std::str;
 
 // / Parser combinator.
 //type Parse<'a, O> = dyn Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a;
 
 /// Being wrapped in this struct guarantees that the parser within will only match valid UTF-8 strings.
-pub struct Parser<'a, O> (parser::Parser<'a, u8, O>);
+pub struct Parser<'a, O>(parser::Parser<'a, u8, O>);
 
 impl<'a, O> Parser<'a, O> {
 	/// Create new parser.
-	pub fn new<P>(parse: P) -> Parser<'a, O>
+	pub fn new<P>(parse: P) -> Self
 	where
 		P: Fn(&'a [u8], usize) -> Result<(O, usize)> + 'a,
 	{
-		Parser( parser::Parser::new(parse) )
+		Self(parser::Parser::new(parse))
 	}
 
 	/// Collect all matched input symbols.
@@ -30,10 +30,10 @@ impl<'a, O> Parser<'a, O> {
 	where
 		O: 'a,
 	{
-		Parser( self.0.collect().map(
+		Parser(self.0.collect().map(
 			// UNSAFE: Because we only could have constructed this object from other utf8::Parser objects, the match space must be valid UTF-8
-			|s| unsafe { str::from_utf8_unchecked(s) }
-		) )
+			|s| unsafe { str::from_utf8_unchecked(s) },
+		))
 	}
 
 	// Remaining methods in impl only delegate to base parser::Parser
@@ -60,7 +60,7 @@ impl<'a, O> Parser<'a, O> {
 		O: 'a,
 		U: 'a,
 	{
-		Parser( self.0.map(f) )
+		Parser(self.0.map(f))
 	}
 
 	/// Convert parser result to desired value, fail in case of conversion error.
@@ -71,15 +71,15 @@ impl<'a, O> Parser<'a, O> {
 		O: 'a,
 		U: 'a,
 	{
-		Parser( self.0.convert(f) )
+		Parser(self.0.convert(f))
 	}
 
 	/// Cache parser output result to speed up backtracking.
-	pub fn cache(self) -> Parser<'a, O>
+	pub fn cache(self) -> Self
 	where
 		O: Clone + 'a,
 	{
-		Parser( self.0.cache() )
+		Self(self.0.cache())
 	}
 
 	/// Get input position after matching parser.
@@ -87,7 +87,7 @@ impl<'a, O> Parser<'a, O> {
 	where
 		O: 'a,
 	{
-		Parser( self.0.pos() )
+		Parser(self.0.pos())
 	}
 
 	/// Discard parser output.
@@ -95,7 +95,7 @@ impl<'a, O> Parser<'a, O> {
 	where
 		O: 'a,
 	{
-		Parser( self.0.discard() )
+		Parser(self.0.discard())
 	}
 
 	/// Make parser optional.
@@ -103,7 +103,7 @@ impl<'a, O> Parser<'a, O> {
 	where
 		O: 'a,
 	{
-		Parser( self.0.opt() )
+		Parser(self.0.opt())
 	}
 
 	/// `p.repeat(5)` repeat p exactly 5 times
@@ -115,30 +115,30 @@ impl<'a, O> Parser<'a, O> {
 		R: RangeArgument<usize> + Debug + 'a,
 		O: 'a,
 	{
-		Parser( self.0.repeat(range) )
+		Parser(self.0.repeat(range))
 	}
 
 	/// Give parser a name to identify parsing errors.
-	pub fn name(self, name: &'a str) -> Parser<'a, O>
+	pub fn name(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
-		Parser( self.0.name(name) )
+		Self(self.0.name(name))
 	}
 
 	/// Mark parser as expected, abort early when failed in ordered choice.
-	pub fn expect(self, name: &'a str) -> Parser<'a, O>
+	pub fn expect(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
-		Parser( self.0.expect(name) )
+		Self(self.0.expect(name))
 	}
 }
 
 impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
-    fn from(parser: Parser<'a, O>) -> Self {
-        parser.0 // Simply unwrap
-    }
+	fn from(parser: Parser<'a, O>) -> Self {
+		parser.0 // Simply unwrap
+	}
 }
 
 // Helper for functions that decode_utf8 and fail
@@ -157,13 +157,12 @@ fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
 }
 
 /// Match any UTF-8 character.
-pub fn any<'a>() -> Parser<'a, char>
-{
+pub fn any<'a>() -> Parser<'a, char> {
 	Parser::new(|input: &[u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
 		if let Some(ch) = ch {
-			let pos = start+size;
+			let pos = start + size;
 
 			Ok((ch, pos))
 		} else {
@@ -173,14 +172,13 @@ pub fn any<'a>() -> Parser<'a, char>
 }
 
 /// Match specific UTF-8 character.
-pub fn sym<'a>(tag: char) -> Parser<'a, char>
-{
+pub fn sym<'a>(tag: char) -> Parser<'a, char> {
 	Parser::new(move |input: &[u8], start: usize| {
 		let (ch, size) = decode_utf8(&input[start..]);
 
 		if let Some(ch) = ch {
 			if ch == tag {
-				let pos = start+size;
+				let pos = start + size;
 
 				Ok((ch, pos))
 			} else {
@@ -196,8 +194,7 @@ pub fn sym<'a>(tag: char) -> Parser<'a, char>
 }
 
 /// Success when sequence of chars matches current input.
-pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str>
-{
+pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str> {
 	let tag = tag_str.as_bytes();
 	Parser::new(move |input: &'a [u8], start: usize| {
 		let mut index = 0;
@@ -234,7 +231,7 @@ where
 
 		if let Some(ch) = ch {
 			if set.contains(&ch) {
-				let pos = start+size;
+				let pos = start + size;
 
 				Ok((ch, pos))
 			} else {
@@ -259,7 +256,7 @@ where
 
 		if let Some(ch) = ch {
 			if !set.contains(&ch) {
-				let pos = start+size;
+				let pos = start + size;
 
 				Ok((ch, pos))
 			} else {
@@ -284,7 +281,7 @@ where
 
 		if let Some(ch) = ch {
 			if predicate(ch) {
-				let pos = start+size;
+				let pos = start + size;
 
 				Ok((ch, pos))
 			} else {
@@ -309,7 +306,7 @@ where
 
 		if let Some(ch) = ch {
 			if !predicate(ch) {
-				let pos = start+size;
+				let pos = start + size;
 
 				Ok((ch, pos))
 			} else {
@@ -331,7 +328,7 @@ pub fn take<'a>(n: usize) -> Parser<'a, &'a str> {
 		for _ in 0..n {
 			let (ch, size) = decode_utf8(&input[start..]);
 			if ch.is_none() {
-				return no_utf8(byte_pos, size)
+				return no_utf8(byte_pos, size);
 			}
 			byte_pos += size;
 		}
@@ -349,7 +346,7 @@ pub fn skip<'a, I>(n: usize) -> Parser<'a, ()> {
 		for _ in 0..n {
 			let (ch, size) = decode_utf8(&input[start..]);
 			if ch.is_none() {
-				return no_utf8(byte_pos, size)
+				return no_utf8(byte_pos, size);
 			}
 			byte_pos += size;
 		}
@@ -368,22 +365,22 @@ pub fn take_bytes<'a>(n: usize) -> Parser<'a, &'a str> {
 		loop {
 			let (ch, size) = decode_utf8(&input[start..]);
 			if ch.is_none() {
-				return no_utf8(byte_pos, size)
+				return no_utf8(byte_pos, size);
 			}
 			byte_pos += size;
 			if byte_pos > n {
 				return Err(Error::Mismatch {
 					message: "range splits a UTF-8 character".to_owned(),
 					position: start,
-				})
+				});
 			}
 			if byte_pos == n {
 				let result = &input[start..byte_pos];
 				// UNSAFE: Because every char has been checked by decode_utf8, this string is known utf8
 				let result_str = unsafe { str::from_utf8_unchecked(result) };
-				return Ok((result_str, byte_pos))
+				return Ok((result_str, byte_pos));
 			}
-		}		
+		}
 	})
 }
 
@@ -395,17 +392,17 @@ pub fn skip_bytes<'a>(n: usize) -> Parser<'a, ()> {
 		loop {
 			let (ch, size) = decode_utf8(&input[start..]);
 			if ch.is_none() {
-				return no_utf8(byte_pos, size)
+				return no_utf8(byte_pos, size);
 			}
 			byte_pos += size;
 			if byte_pos > n {
 				return Err(Error::Mismatch {
 					message: "range splits a UTF-8 character".to_owned(),
 					position: start,
-				})
+				});
 			}
 			if byte_pos == n {
-				return Ok(((), byte_pos))
+				return Ok(((), byte_pos));
 			}
 		}
 	})
@@ -429,19 +426,16 @@ impl<'a, O: 'a, U: 'a, F: Fn(O) -> Parser<'a, U> + 'a> Shr<F> for Parser<'a, O> 
 
 /// Always succeeds, consume no input.
 pub fn empty<'a>() -> Parser<'a, ()> {
-	Parser( parser::empty() )
+	Parser(parser::empty())
 }
 
 /// Parse separated list.
-pub fn list<'a, I, O, U>(
-	item: Parser<'a, O>,
-	separator: Parser<'a, U>,
-) -> Parser<'a, Vec<O>>
+pub fn list<'a, I, O, U>(item: Parser<'a, O>, separator: Parser<'a, U>) -> Parser<'a, Vec<O>>
 where
 	O: 'a,
 	U: 'a,
 {
-	Parser( parser::list(item.0, separator.0) )
+	Parser(parser::list(item.0, separator.0))
 }
 
 /// Call a parser factory, can be used to create recursive parsers.
@@ -450,13 +444,12 @@ where
 	O: 'a,
 	F: Fn() -> Parser<'a, O> + 'a,
 {
-	Parser( parser::call(move || parser_factory().0) )
+	Parser(parser::call(move || parser_factory().0))
 }
 
 /// Success when end of input is reached.
-pub fn end<'a, I>() -> Parser<'a, ()>
-{
-	Parser( parser::end() )
+pub fn end<'a, I>() -> Parser<'a, ()> {
+	Parser(parser::end())
 }
 
 // And, Sub and Mul are similar enough we can implement them with macros
@@ -501,11 +494,11 @@ macro_rules! u8_utf_op {
 }
 
 macro_rules! all_op {
-    ( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
-    	utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
-    	utf_u8_op!($impl_name, $fn_name, $op, $return_type, $doc);
-    	u8_utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
-    }
+	( $impl_name:ident, $fn_name:ident, $op:tt, $return_type:ty, $doc:expr ) => {
+		utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
+		utf_u8_op!($impl_name, $fn_name, $op, $return_type, $doc);
+		u8_utf_op!($impl_name, $fn_name, $op, $return_type, $doc);
+	};
 }
 
 all_op!(Add, add, +, (Left, Right), "Sequence reserve value");
@@ -516,10 +509,10 @@ all_op!(Mul, mul, *, Right, "Sequence discard first value");
 
 /// Ordered choice
 impl<'a, O: 'a> BitOr for Parser<'a, O> {
-	type Output = Parser<'a, O>;
+	type Output = Self;
 
-	fn bitor(self, other: Parser<'a, O>) -> Self::Output {
-		Parser(self.0 | other.0)
+	fn bitor(self, other: Self) -> Self {
+		Self(self.0 | other.0)
 	}
 }
 
@@ -546,7 +539,7 @@ impl<'a, O: 'a> Neg for Parser<'a, O> {
 	type Output = Parser<'a, bool>;
 
 	fn neg(self) -> Self::Output {
-		Parser( -self.0 )
+		Parser(-self.0)
 	}
 }
 
@@ -555,6 +548,6 @@ impl<'a, O: 'a> Not for Parser<'a, O> {
 	type Output = Parser<'a, bool>;
 
 	fn not(self) -> Self::Output {
-		Parser( !self.0 )
+		Parser(!self.0)
 	}
 }

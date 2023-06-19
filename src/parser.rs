@@ -14,11 +14,11 @@ pub struct Parser<'a, I, O> {
 
 impl<'a, I, O> Parser<'a, I, O> {
 	/// Create new parser.
-	pub fn new<P>(parse: P) -> Parser<'a, I, O>
+	pub fn new<P>(parse: P) -> Self
 	where
 		P: Fn(&'a [I], usize) -> Result<(O, usize)> + 'a,
 	{
-		Parser {
+		Self {
 			method: Box::new(parse),
 		}
 	}
@@ -66,14 +66,14 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Cache parser output result to speed up backtracking.
-	pub fn cache(self) -> Parser<'a, I, O>
+	pub fn cache(self) -> Self
 	where
 		O: Clone + 'a,
 	{
 		use std::cell::RefCell;
 		use std::collections::HashMap;
 		let results = RefCell::new(HashMap::new());
-		Parser::new(move |input: &'a [I], start: usize| {
+		Self::new(move |input: &'a [I], start: usize| {
 			let key = (start, format!("{:p}", &self.method));
 			results
 				.borrow_mut()
@@ -153,12 +153,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 					Unbounded => (),
 				}
 
-				if let Ok((item, item_pos)) = (self.method)(input, pos) {
-					items.push(item);
-					pos = item_pos;
-				} else {
-					break;
-				}
+				let Ok((item, item_pos)) = (self.method)(input, pos) else { break };
+				items.push(item);
+				pos = item_pos;
 			}
 			if let Included(&min_count) = range.start() {
 				if items.len() < min_count {
@@ -177,7 +174,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Give parser a name to identify parsing errors.
-	pub fn name(self, name: &'a str) -> Parser<'a, I, O>
+	pub fn name(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
@@ -197,7 +194,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	}
 
 	/// Mark parser as expected, abort early when failed in ordered choice.
-	pub fn expect(self, name: &'a str) -> Parser<'a, I, O>
+	pub fn expect(self, name: &'a str) -> Self
 	where
 		O: 'a,
 	{
@@ -225,14 +222,13 @@ where
 	I: Clone,
 {
 	Parser::new(|input: &[I], start: usize| {
-		if let Some(s) = input.get(start) {
-			Ok((s.clone(), start + 1))
-		} else {
-			Err(Error::Mismatch {
+		let Some(s) = input.get(start) else {
+			return Err(Error::Mismatch {
 				message: "end of input reached".to_owned(),
 				position: start,
 			})
-		}
+		};
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -242,18 +238,14 @@ where
 	I: Clone + PartialEq + Display,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if t == *s {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect: {}, found: {}", t, s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if t != *s {
+			return Err(Error::Mismatch {
+				message: format!("expect: {}, found: {}", t, s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -269,15 +261,12 @@ where
 			if index == tag.len() {
 				return Ok((tag, pos));
 			}
-			if let Some(s) = input.get(pos) {
-				if tag[index] != *s {
-					return Err(Error::Mismatch {
-						message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(s) = input.get(pos) else { return Err(Error::Incomplete) };
+			if tag[index] != *s {
+				return Err(Error::Mismatch {
+					message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
+					position: pos,
+				});
 			}
 			index += 1;
 		}
@@ -289,15 +278,12 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 	Parser::new(move |input: &'a [char], start: usize| {
 		let mut pos = start;
 		for c in tag.chars() {
-			if let Some(&s) = input.get(pos) {
-				if c != s {
-					return Err(Error::Mismatch {
-						message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(&s) = input.get(pos) else { return Err(Error::Incomplete) };
+			if c != s {
+				return Err(Error::Mismatch {
+					message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
+					position: pos,
+				});
 			}
 			pos += 1;
 		}
@@ -341,18 +327,14 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if set.contains(s) {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect one of: {}, found: {}", set.to_str(), s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
-		}
+		let Some(s) = input.get(start) else {return  Err(Error::Incomplete) };
+		if !set.contains(s) {
+			return Err(Error::Mismatch {
+				message: format!("expect one of: {}, found: {}", set.to_str(), s),
+				position: start,
+			});
+		};
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -363,18 +345,14 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if set.contains(s) {
-				Err(Error::Mismatch {
-					message: format!("expect none of: {}, found: {}", set.to_str(), s),
-					position: start,
-				})
-			} else {
-				Ok((s.clone(), start + 1))
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else {return Err(Error::Incomplete) };
+		if set.contains(s) {
+			return Err(Error::Mismatch {
+				message: format!("expect none of: {}, found: {}", set.to_str(), s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -385,18 +363,15 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if predicate(s.clone()) {
-				Ok((s.clone(), start + 1))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("is_a predicate failed on: {}", s),
-					position: start,
-				})
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if !predicate(s.clone()) {
+			return Err(Error::Mismatch {
+				message: format!("is_a predicate failed on: {}", s),
+				position: start,
+			});
 		}
+
+		Ok((s.clone(), start + 1))
 	})
 }
 
@@ -407,18 +382,14 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		if let Some(s) = input.get(start) {
-			if predicate(s.clone()) {
-				Err(Error::Mismatch {
-					message: format!("not_a predicate failed on: {}", s),
-					position: start,
-				})
-			} else {
-				Ok((s.clone(), start + 1))
-			}
-		} else {
-			Err(Error::Incomplete)
+		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		if predicate(s.clone()) {
+			return Err(Error::Mismatch {
+				message: format!("not_a predicate failed on: {}", s),
+				position: start,
+			});
 		}
+		Ok((s.clone(), start + 1))
 	})
 }
 

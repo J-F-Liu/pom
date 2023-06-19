@@ -9,7 +9,7 @@ pub mod parser;
 pub mod char_class;
 
 /// Variants of parser functions specialized for matching UTF-8 strings and returning chars.
-/// Method and constructor names/functionality are generally the same as in base parser module. 
+/// Method and constructor names/functionality are generally the same as in base parser module.
 #[cfg(feature = "utf8")]
 pub mod utf8;
 

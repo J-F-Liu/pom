@@ -25,42 +25,44 @@ Director: Alejandro Jodorowsky
 	}
 
 	fn positive<'a>() -> Parser<'a, i32> {
-//		let integer = (one_of("123456789") - one_of("0123456789").repeat(0..)) | sym(b'0'); // TODO
+		//		let integer = (one_of("123456789") - one_of("0123456789").repeat(0..)) | sym(b'0'); // TODO
 		let digit = one_of("0123456789");
 		let integer = digit.discard().repeat(1..);
-		integer.collect().convert(|x|x.parse::<i32>())
+		integer.collect().convert(|x| x.parse::<i32>())
 	}
 
 	fn rest_str<'a>() -> Parser<'a, &'a str> {
 		any().repeat(1..).collect()
 	}
 
-	fn separator<'a>() ->Parser<'a, ()> {
+	fn separator<'a>() -> Parser<'a, ()> {
 		seq(": ").discard()
 	}
 
-	let parser =
-		  (seq("Título")   * separator() * rest_str().map(|s| DataLine::Title(s)))
+	let parser = (seq("Título") * separator() * rest_str().map(|s| DataLine::Title(s)))
 		| (seq("Director") * separator() * rest_str().map(|s| DataLine::Director(s)))
-		| (seq("Año")      * separator() * positive().map(|i| DataLine::Year(i)));
+		| (seq("Año") * separator() * positive().map(|i| DataLine::Year(i)));
 
 	{
-		let mut title_opt:Option<&str> = None;
-		let mut year_opt:Option<i32> = None;
-		let mut director_opt:Option<&str> = None;
+		let mut title_opt: Option<&str> = None;
+		let mut year_opt: Option<i32> = None;
+		let mut director_opt: Option<&str> = None;
 
-		for line in input.lines()  {
-			if !line.is_empty() { // Skip blank lines without parsing
+		for line in input.lines() {
+			if !line.is_empty() {
+				// Skip blank lines without parsing
 				// Parse line
 				match parser.parse_str(line).unwrap() {
-					DataLine::Title(s) =>    title_opt = Some(s),
+					DataLine::Title(s) => title_opt = Some(s),
 					DataLine::Director(s) => director_opt = Some(s),
-					DataLine::Year(s) =>     year_opt = Some(s),
+					DataLine::Year(s) => year_opt = Some(s),
 				}
 				// When all three line types have been collected, print them
-				if let (Some(title), Some(year), Some(director)) = (title_opt,year_opt,director_opt) {
+				if let (Some(title), Some(year), Some(director)) =
+					(title_opt, year_opt, director_opt)
+				{
 					println!("Title: {}\nDirector: {}\nYear: {}\n", title, director, year);
-					(title_opt, year_opt, director_opt) = (None,None,None);
+					(title_opt, year_opt, director_opt) = (None, None, None);
 				}
 			}
 		}
