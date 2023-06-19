@@ -25,7 +25,7 @@ pub fn hex_digit(term: u8) -> bool {
 /// Recognises an octal digit, `0-7`.
 #[inline]
 pub fn oct_digit(term: u8) -> bool {
-	(0x30..=0x37).contains(&term)
+	matches!(term, 0x30..=0x37)
 }
 
 /// Recognises a space or tab.

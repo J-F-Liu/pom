@@ -70,8 +70,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	where
 		O: Clone + 'a,
 	{
-		use std::cell::RefCell;
-		use std::collections::HashMap;
+		use std::{cell::RefCell, collections::HashMap};
 		let results = RefCell::new(HashMap::new());
 		Self::new(move |input: &'a [I], start: usize| {
 			let key = (start, format!("{:p}", &self.method));
