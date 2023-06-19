@@ -399,11 +399,10 @@ where
 pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
-		if input.len() >= pos {
-			Ok((&input[start..pos], pos))
-		} else {
-			Err(Error::Incomplete)
+		if input.len() < pos {
+			return Err(Error::Incomplete);
 		}
+		Ok((&input[start..pos], pos))
 	})
 }
 
@@ -411,11 +410,10 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
-		if input.len() >= pos {
-			Ok(((), pos))
-		} else {
-			Err(Error::Incomplete)
+		if input.len() < pos {
+			return Err(Error::Incomplete);
 		}
+		Ok(((), pos))
 	})
 }
 
@@ -438,13 +436,12 @@ where
 {
 	Parser::new(|input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
-			Err(Error::Mismatch {
+			return Err(Error::Mismatch {
 				message: format!("expect end of input, found: {}", s),
 				position: start,
-			})
-		} else {
-			Ok(((), start))
+			});
 		}
+		Ok(((), start))
 	})
 }
 
