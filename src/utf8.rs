@@ -195,15 +195,12 @@ pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str> {
 				let result_str = unsafe { str::from_utf8_unchecked(result) };
 				return Ok((result_str, pos));
 			}
-			if let Some(s) = input.get(pos) {
-				if tag[index] != *s {
-					return Err(Error::Mismatch {
-						message: format!("seq {:?} at byte index: {}", tag, pos),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(s) = input.get(pos) else { return Err(Error::Incomplete); };
+			if tag[index] != *s {
+				return Err(Error::Mismatch {
+					message: format!("seq {:?} at byte index: {}", tag, pos),
+					position: pos,
+				});
 			}
 			index += 1;
 		}
