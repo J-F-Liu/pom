@@ -141,6 +141,12 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 	}
 }
 
+pub fn decode(slice: &[u8], start: usize) -> Result<(char, usize)> {
+	let (ch, size) = decode_utf8(&slice[start..]);
+	let Some(ch) = ch else { return no_utf8(start, size); };
+	Ok((ch, size))
+}
+
 // Helper for functions that decode_utf8 and fail
 fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
 	Err(Error::Mismatch {
@@ -157,9 +163,7 @@ fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
 /// Match any UTF-8 character.
 pub fn any<'a>() -> Parser<'a, char> {
 	Parser::new(|input: &[u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else { return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		let pos = start + size;
 		Ok((ch, pos))
 	})
@@ -168,9 +172,7 @@ pub fn any<'a>() -> Parser<'a, char> {
 /// Match specific UTF-8 character.
 pub fn sym<'a>(tag: char) -> Parser<'a, char> {
 	Parser::new(move |input: &[u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else { return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		if ch != tag {
 			return Err(Error::Mismatch {
 				message: format!("expect: {}, found: {}", tag, ch),
@@ -213,9 +215,7 @@ where
 	S: Set<char> + ?Sized,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else {  return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		if !set.contains(&ch) {
 			return Err(Error::Mismatch {
 				message: format!("expect one of: {}, found: {}", set.to_str(), ch),
@@ -233,9 +233,7 @@ where
 	S: Set<char> + ?Sized,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else { return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		if set.contains(&ch) {
 			return Err(Error::Mismatch {
 				message: format!("expect one of: {}, found: {}", set.to_str(), ch),
@@ -253,9 +251,7 @@ where
 	F: Fn(char) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else { return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		if !predicate(ch) {
 			return Err(Error::Mismatch {
 				message: format!("is_a predicate failed on: {}", ch),
@@ -273,9 +269,7 @@ where
 	F: Fn(char) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		let Some(ch) = ch else { return no_utf8(start, size) };
+		let (ch, size) = decode(input, start)?;
 		if predicate(ch) {
 			return Err(Error::Mismatch {
 				message: format!("is_a predicate failed on: {}", ch),
