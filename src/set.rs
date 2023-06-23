@@ -1,6 +1,8 @@
-use std::cmp::{PartialEq, PartialOrd};
-use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
-use std::str;
+use std::{
+	cmp::{PartialEq, PartialOrd},
+	ops::{Range, RangeFrom, RangeFull, RangeTo},
+	str,
+};
 
 /// Set relationship.
 pub trait Set<T> {

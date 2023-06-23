@@ -1,9 +1,12 @@
 use super::{Error, Result};
-use crate::range::Bound::*;
-use crate::range::RangeArgument;
-use crate::set::Set;
-use std::fmt::{Debug, Display};
-use std::ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub};
+use crate::{
+	range::{Bound::*, RangeArgument},
+	set::Set,
+};
+use std::{
+	fmt::{Debug, Display},
+	ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub},
+};
 
 type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
 
@@ -70,8 +73,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 	where
 		O: Clone + 'a,
 	{
-		use std::cell::RefCell;
-		use std::collections::HashMap;
+		use std::{cell::RefCell, collections::HashMap};
 		let results = RefCell::new(HashMap::new());
 		Self::new(move |input: &'a [I], start: usize| {
 			let key = (start, format!("{:p}", &self.method));
@@ -370,7 +372,6 @@ where
 				position: start,
 			});
 		}
-
 		Ok((s.clone(), start + 1))
 	})
 }
@@ -397,11 +398,10 @@ where
 pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
-		if input.len() >= pos {
-			Ok((&input[start..pos], pos))
-		} else {
-			Err(Error::Incomplete)
+		if input.len() < pos {
+			return Err(Error::Incomplete);
 		}
+		Ok((&input[start..pos], pos))
 	})
 }
 
@@ -409,11 +409,10 @@ pub fn take<'a, I>(n: usize) -> Parser<'a, I, &'a [I]> {
 pub fn skip<'a, I>(n: usize) -> Parser<'a, I, ()> {
 	Parser::new(move |input: &'a [I], start: usize| {
 		let pos = start + n;
-		if input.len() >= pos {
-			Ok(((), pos))
-		} else {
-			Err(Error::Incomplete)
+		if input.len() < pos {
+			return Err(Error::Incomplete);
 		}
+		Ok(((), pos))
 	})
 }
 
@@ -436,13 +435,12 @@ where
 {
 	Parser::new(|input: &'a [I], start: usize| {
 		if let Some(s) = input.get(start) {
-			Err(Error::Mismatch {
+			return Err(Error::Mismatch {
 				message: format!("expect end of input, found: {}", s),
 				position: start,
-			})
-		} else {
-			Ok(((), start))
+			});
 		}
+		Ok(((), start))
 	})
 }
 

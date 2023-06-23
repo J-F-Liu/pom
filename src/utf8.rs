@@ -141,55 +141,46 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 	}
 }
 
+pub fn decode(slice: &[u8], start: usize) -> Result<(char, usize)> {
+	let (ch, size) = decode_utf8(&slice[start..]);
+	let Some(ch) = ch else { return no_utf8(start, size) };
+	Ok((ch, size))
+}
+
 // Helper for functions that decode_utf8 and fail
 fn no_utf8<T>(start: usize, size: usize) -> Result<T> {
-	if size == 0 {
-		Err(Error::Mismatch {
-			message: "end of input reached".to_owned(),
-			position: start,
-		})
-	} else {
-		Err(Error::Mismatch {
-			message: "not UTF-8".to_owned(),
-			position: start,
-		})
-	}
+	Err(Error::Mismatch {
+		message: if size == 0 {
+			"end of input reached"
+		} else {
+			"not UTF-8"
+		}
+		.to_owned(),
+		position: start,
+	})
 }
 
 /// Match any UTF-8 character.
 pub fn any<'a>() -> Parser<'a, char> {
 	Parser::new(|input: &[u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			let pos = start + size;
-
-			Ok((ch, pos))
-		} else {
-			no_utf8(start, size)
-		}
+		let (ch, size) = decode(input, start)?;
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
 /// Match specific UTF-8 character.
 pub fn sym<'a>(tag: char) -> Parser<'a, char> {
 	Parser::new(move |input: &[u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			if ch == tag {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect: {}, found: {}", tag, ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let (ch, size) = decode(input, start)?;
+		if ch != tag {
+			return Err(Error::Mismatch {
+				message: format!("expect: {}, found: {}", tag, ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
@@ -206,15 +197,12 @@ pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str> {
 				let result_str = unsafe { str::from_utf8_unchecked(result) };
 				return Ok((result_str, pos));
 			}
-			if let Some(s) = input.get(pos) {
-				if tag[index] != *s {
-					return Err(Error::Mismatch {
-						message: format!("seq {:?} at byte index: {}", tag, pos),
-						position: pos,
-					});
-				}
-			} else {
-				return Err(Error::Incomplete);
+			let Some(s) = input.get(pos) else { return Err(Error::Incomplete); };
+			if tag[index] != *s {
+				return Err(Error::Mismatch {
+					message: format!("seq {:?} at byte index: {}", tag, pos),
+					position: pos,
+				});
 			}
 			index += 1;
 		}
@@ -227,22 +215,15 @@ where
 	S: Set<char> + ?Sized,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			if set.contains(&ch) {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect one of: {}, found: {}", set.to_str(), ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let (ch, size) = decode(input, start)?;
+		if !set.contains(&ch) {
+			return Err(Error::Mismatch {
+				message: format!("expect one of: {}, found: {}", set.to_str(), ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
@@ -252,22 +233,15 @@ where
 	S: Set<char> + ?Sized,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			if !set.contains(&ch) {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("expect one of: {}, found: {}", set.to_str(), ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let (ch, size) = decode(input, start)?;
+		if set.contains(&ch) {
+			return Err(Error::Mismatch {
+				message: format!("expect one of: {}, found: {}", set.to_str(), ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
@@ -277,22 +251,15 @@ where
 	F: Fn(char) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			if predicate(ch) {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("is_a predicate failed on: {}", ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let (ch, size) = decode(input, start)?;
+		if !predicate(ch) {
+			return Err(Error::Mismatch {
+				message: format!("is_a predicate failed on: {}", ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 
@@ -302,22 +269,15 @@ where
 	F: Fn(char) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [u8], start: usize| {
-		let (ch, size) = decode_utf8(&input[start..]);
-
-		if let Some(ch) = ch {
-			if !predicate(ch) {
-				let pos = start + size;
-
-				Ok((ch, pos))
-			} else {
-				Err(Error::Mismatch {
-					message: format!("is_a predicate failed on: {}", ch),
-					position: start,
-				})
-			}
-		} else {
-			no_utf8(start, size)
+		let (ch, size) = decode(input, start)?;
+		if predicate(ch) {
+			return Err(Error::Mismatch {
+				message: format!("is_a predicate failed on: {}", ch),
+				position: start,
+			});
 		}
+		let pos = start + size;
+		Ok((ch, pos))
 	})
 }
 

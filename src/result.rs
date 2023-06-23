@@ -1,5 +1,7 @@
-use std::error;
-use std::fmt::{self, Display};
+use std::{
+	error,
+	fmt::{self, Display},
+};
 
 /// Parser error.
 #[derive(Debug, PartialEq, Clone)]
@@ -34,26 +36,26 @@ impl error::Error for Error {
 impl Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-			Error::Incomplete => write!(f, "Incomplete"),
-			Error::Mismatch {
+			Self::Incomplete => write!(f, "Incomplete"),
+			Self::Mismatch {
 				ref message,
 				ref position,
 			} => write!(f, "Mismatch at {}: {}", position, message),
-			Error::Conversion {
+			Self::Conversion {
 				ref message,
 				ref position,
 			} => write!(f, "Conversion failed at {}: {}", position, message),
-			Error::Expect {
+			Self::Expect {
 				ref message,
 				ref position,
 				ref inner,
 			} => write!(f, "{} at {}: {}", message, position, inner),
-			Error::Custom {
+			Self::Custom {
 				ref message,
 				ref position,
 				inner: Some(ref inner),
 			} => write!(f, "{} at {}, (inner: {})", message, position, inner),
-			Error::Custom {
+			Self::Custom {
 				ref message,
 				ref position,
 				inner: None,
