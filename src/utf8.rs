@@ -408,7 +408,7 @@ where
 }
 
 /// Success when end of input is reached.
-pub fn end<'a, I>() -> Parser<'a, ()> {
+pub fn end<'a>() -> Parser<'a, ()> {
 	Parser(parser::end())
 }
 
