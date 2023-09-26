@@ -143,7 +143,9 @@ impl<'a, O> From<Parser<'a, O>> for parser::Parser<'a, u8, O> {
 
 pub fn decode(slice: &[u8], start: usize) -> Result<(char, usize)> {
 	let (ch, size) = decode_utf8(&slice[start..]);
-	let Some(ch) = ch else { return no_utf8(start, size) };
+	let Some(ch) = ch else {
+		return no_utf8(start, size);
+	};
 	Ok((ch, size))
 }
 
@@ -197,7 +199,9 @@ pub fn seq<'a, 'b: 'a>(tag_str: &'b str) -> Parser<'a, &'a str> {
 				let result_str = unsafe { str::from_utf8_unchecked(result) };
 				return Ok((result_str, pos));
 			}
-			let Some(s) = input.get(pos) else { return Err(Error::Incomplete); };
+			let Some(s) = input.get(pos) else {
+				return Err(Error::Incomplete);
+			};
 			if tag[index] != *s {
 				return Err(Error::Mismatch {
 					message: format!("seq {:?} at byte index: {}", tag, pos),
@@ -300,7 +304,7 @@ pub fn take<'a>(n: usize) -> Parser<'a, &'a str> {
 }
 
 /// Skip n symbols.
-pub fn skip<'a, I>(n: usize) -> Parser<'a, ()> {
+pub fn skip<'a>(n: usize) -> Parser<'a, ()> {
 	Parser::new(move |input: &'a [u8], start: usize| {
 		let mut byte_pos = start;
 		for _ in 0..n {
@@ -390,7 +394,7 @@ pub fn empty<'a>() -> Parser<'a, ()> {
 }
 
 /// Parse separated list.
-pub fn list<'a, I, O, U>(item: Parser<'a, O>, separator: Parser<'a, U>) -> Parser<'a, Vec<O>>
+pub fn list<'a, O, U>(item: Parser<'a, O>, separator: Parser<'a, U>) -> Parser<'a, Vec<O>>
 where
 	O: 'a,
 	U: 'a,
