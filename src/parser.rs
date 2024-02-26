@@ -175,6 +175,7 @@ impl<'a, I, O> Parser<'a, I, O> {
 		})
 	}
 
+	#[cfg(not(feature = "trace"))]
 	/// Give parser a name to identify parsing errors.
 	pub fn name(self, name: &'a str) -> Self
 	where
@@ -191,6 +192,36 @@ impl<'a, I, O> Parser<'a, I, O> {
 						inner: Some(Box::new(err)),
 					}),
 				},
+			},
+		)
+	}
+
+	#[cfg(feature = "trace")]
+	/// Trace parser calls and results. Similar to name
+	pub fn name(self, name: &'a str) -> Self
+	where
+		O: 'a,
+	{
+		Parser::new(
+			move |input: &'a [I], start: usize| {
+				println!("parse: {} ({})", name, start);
+				match (self.method)(input, start) {
+					res @ Ok(_) => {
+						println!("       {} ({}): ok", name, start);
+						res
+					},
+					Err(err) => {
+						println!("       {} ({}): error", name, start);
+						match err {
+							Error::Custom { .. } => Err(err),
+							_ => Err(Error::Custom {
+								message: format!("failed to parse {}", name),
+								position: start,
+								inner: Some(Box::new(err)),
+							}),
+						}
+					},
+				}
 			},
 		)
 	}
@@ -740,4 +771,60 @@ mod tests {
 			assert!(output.is_err())
 		}
 	}
+
+	#[cfg(not(feature = "trace"))]
+	#[test]
+	fn named() {
+		let input = b"xxxooo";
+
+		{
+			let parser = sym(b'x').repeat(3);
+			let output = parser.name("name_test_ok").parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(4);
+			let output = parser.name("name_test_err").parse(input);
+			assert_eq!(output, Err(
+				Error::Custom {
+					message: "failed to parse name_test_err".into(),
+					position: 0,
+					inner: Some(Box::new(Error::Mismatch {
+						message: "expect repeat at least 4 times, found 3 times".into(),
+						position: 0 
+					}))
+				}
+			))
+		}
+	} 
+
+	#[cfg(feature = "trace")]
+	#[test]
+	// Note: this doesn't test the tracing per se, just that the `name()` method executes
+	// in the same way when the feature is turned on.
+	fn named() {
+		let input = b"xxxooo";
+
+		{
+			let parser = sym(b'x').repeat(3);
+			let output = parser.name("name_test_ok").parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(4);
+			let output = parser.name("name_test_err").parse(input);
+			assert_eq!(output, Err(
+				Error::Custom {
+					message: "failed to parse name_test_err".into(),
+					position: 0,
+					inner: Some(Box::new(Error::Mismatch {
+						message: "expect repeat at least 4 times, found 3 times".into(),
+						position: 0 
+					}))
+				}
+			))
+		}
+	} 
 }
