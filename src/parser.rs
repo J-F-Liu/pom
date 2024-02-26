@@ -738,6 +738,41 @@ mod tests {
 	}
 
 	#[test]
+	fn repeat_up_to_inclusive() {
+		let input = b"xxxooo";
+
+		{
+			let parser = sym(b'x').repeat(..=2);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 2]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..=4);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..=0);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(..=10);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+	}
+
+	#[test]
 	fn repeat_exactly() {
 		let input = b"xxxooo";
 

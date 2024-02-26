@@ -1,4 +1,4 @@
-use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
+use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 pub enum Bound<'a, T: 'a> {
 	Excluded(&'a T),
@@ -30,6 +30,26 @@ impl<T> RangeArgument<T> for RangeFrom<T> {
 	}
 }
 
+impl<T> RangeArgument<T> for RangeFull {
+	fn start(&self) -> Bound<T> {
+		Unbounded
+	}
+	fn end(&self) -> Bound<T> {
+		Unbounded
+	}
+}
+
+// impl<T: Clone> RangeArgument<T> for RangeInclusive<T> {
+//     fn start(&self) -> Bound<T> {
+// 		let (start, _) = self.clone().into_inner();
+//         Included(&start.to_owned())
+//     }
+//     fn end(&self) -> Bound<T> {
+// 		let (_, end) = self.clone().into_inner();
+//         Included(&end.to_owned())
+//     }
+// }
+
 impl<T> RangeArgument<T> for RangeTo<T> {
 	fn start(&self) -> Bound<T> {
 		Unbounded
@@ -39,12 +59,12 @@ impl<T> RangeArgument<T> for RangeTo<T> {
 	}
 }
 
-impl<T> RangeArgument<T> for RangeFull {
+impl<T> RangeArgument<T> for RangeToInclusive<T> {
 	fn start(&self) -> Bound<T> {
 		Unbounded
 	}
 	fn end(&self) -> Bound<T> {
-		Unbounded
+		Included(&self.end)
 	}
 }
 
