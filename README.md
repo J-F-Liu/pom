@@ -39,10 +39,10 @@ Aside from build issues (and the usual issues around error messages and debuggab
 ## List of predefined parsers and combinators
 
 | Basic Parsers    | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
+|------------------|-----------------------------------------------------------------|
 | empty()          | Always succeeds, consume no input.                              |
 | end()            | Match end of input.                                             |
-| any()            | Match any symbol and return the symbol.                                             |
+| any()            | Match any symbol and return the symbol.                         |
 | sym(t)           | Match a single terminal symbol _t_.                             |
 | seq(s)           | Match sequence of symbols.                                      |
 | list(p,s)        | Match list of _p_, separated by _s_.                            |
@@ -55,7 +55,7 @@ Aside from build issues (and the usual issues around error messages and debuggab
 | call(pf)         | Call a parser factory, can be used to create recursive parsers. |
 
 | Parser Combinators | Description                                                                                                                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | p &#124; q         | Match p or q, return result of the first success.                                                                                                                                              |
 | p + q              | Match p and q, if both succeed return a pair of results.                                                                                                                                       |
 | p - q              | Match p and q, if both succeed return result of p.                                                                                                                                             |
@@ -70,7 +70,7 @@ Aside from build issues (and the usual issues around error messages and debuggab
 | p.pos()            | Get input position after matching p.                                                                                                                                                           |
 | p.collect()        | Collect all matched input symbols.                                                                                                                                                             |
 | p.discard()        | Discard parser output.                                                                                                                                                                         |
-| p.name(\_)         | Give parser a name to identify parsing errors.                                                                                                                                                 |
+| p.name(\_)         | Give parser a name to identify parsing errors.<br>If the `trace` feature is enabled then a basic trace for the parse and parse result is made to stdout.                                       |
 | p.expect(\_)       | Mark parser as expected, abort early when failed in ordered choice.                                                                                                                            |
 
 The choice of operators is established by their operator precedence, arity and "meaning".
@@ -187,7 +187,7 @@ cargo run --example json
 ## Benchmark
 
 | Parser                                               | Time to parse the same JSON file |
-| ---------------------------------------------------- | -------------------------------- |
+|------------------------------------------------------|----------------------------------|
 | pom: json_byte                                       | 621,319 ns/iter (+/- 20,318)     |
 | pom: json_char                                       | 627,110 ns/iter (+/- 11,463)     |
 | [pest](https://github.com/dragostis/pest): json_char | 13,359 ns/iter (+/- 811)         |
