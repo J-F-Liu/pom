@@ -1,11 +1,12 @@
 use super::{Error, Result};
 use crate::{
-	range::{Bound::*, RangeArgument},
+	range::RangeArgument,
 	set::Set,
 };
 use std::{
 	fmt::{Debug, Display},
 	ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub},
+	ops::Bound::{Included, Excluded, Unbounded},
 };
 
 type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
@@ -754,12 +755,6 @@ mod tests {
 		}
 
 		{
-			let parser = sym(b'x').repeat(..);
-			let output = parser.parse(input);
-			assert_eq!(output, Ok(vec![b'x'; 3]))
-		}
-
-		{
 			let parser = sym(b'x').repeat(..=0);
 			let output = parser.parse(input);
 			assert_eq!(output, Ok(vec![]))
@@ -769,6 +764,41 @@ mod tests {
 			let parser = sym(b'x').repeat(..=10);
 			let output = parser.parse(input);
 			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+	}
+
+	#[test]
+	fn repeat_from_to_inclusive() {
+		let input = b"xxxooo";
+
+		{
+			let parser = sym(b'x').repeat(1..=2);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 2]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(1..=4);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(0..=0);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(3..=10);
+			let output = parser.parse(input);
+			assert_eq!(output, Ok(vec![b'x'; 3]))
+		}
+
+		{
+			let parser = sym(b'x').repeat(4..=10);
+			let output = parser.parse(input);
+			assert!(output.is_err())
 		}
 	}
 
