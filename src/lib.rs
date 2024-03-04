@@ -1,6 +1,6 @@
-pub mod range;
+pub(crate) mod range;
 mod result;
-pub mod set;
+pub(crate) mod set;
 
 /// Contains predefined parsers and combinators.
 pub mod parser;

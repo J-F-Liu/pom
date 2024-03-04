@@ -358,7 +358,7 @@ These are functions to create basic parsers.
 | -p                 | Success when p success, doen't consume input. |
 | !p                 | Success when p fail, doen't consume input. |
 | p.opt()            | Make parser optional.                    |
-| p.repeat(m..n)     | `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times |
+| p.repeat(m..n)     | `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>`p.repeat(1..=3)` also match p at least 1 and at most 3 times |
 | p.map(f)           | Convert parser result to desired value.  |
 | p.convert(f)       | Convert parser result to desired value, fail in case of conversion error. |
 | p.pos()            | Get input position after matching p.     |
