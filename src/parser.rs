@@ -205,14 +205,14 @@ impl<'a, I, O> Parser<'a, I, O> {
 	{
 		Parser::new(
 			move |input: &'a [I], start: usize| {
-				println!("parse: {} ({})", name, start);
+				eprintln!("parse: {} ({})", name, start);
 				match (self.method)(input, start) {
 					res @ Ok(_) => {
-						println!("       {} ({}): ok", name, start);
+						eprintln!("       {} ({}): ok", name, start);
 						res
 					},
 					Err(err) => {
-						println!("       {} ({}): error", name, start);
+						eprintln!("       {} ({}): error", name, start);
 						match err {
 							Error::Custom { .. } => Err(err),
 							_ => Err(Error::Custom {
