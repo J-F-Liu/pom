@@ -70,7 +70,7 @@ Aside from build issues (and the usual issues around error messages and debuggab
 | p.pos()            | Get input position after matching p.                                                                                                                                                           |
 | p.collect()        | Collect all matched input symbols.                                                                                                                                                             |
 | p.discard()        | Discard parser output.                                                                                                                                                                         |
-| p.name(\_)         | Give parser a name to identify parsing errors.<br>If the `trace` feature is enabled then a basic trace for the parse and parse result is made to stdout.                                       |
+| p.name(\_)         | Give parser a name to identify parsing errors.<br>If the `trace` feature is enabled then a basic trace for the parse and parse result is made to stderr.                                       |
 | p.expect(\_)       | Mark parser as expected, abort early when failed in ordered choice.                                                                                                                            |
 
 The choice of operators is established by their operator precedence, arity and "meaning".
