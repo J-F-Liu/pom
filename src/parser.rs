@@ -1,12 +1,9 @@
 use super::{Error, Result};
-use crate::{
-	range::RangeArgument,
-	set::Set,
-};
+use crate::{range::RangeArgument, set::Set};
 use std::{
 	fmt::{Debug, Display},
+	ops::Bound::{Excluded, Included, Unbounded},
 	ops::{Add, BitOr, Mul, Neg, Not, Shr, Sub},
-	ops::Bound::{Included, Excluded, Unbounded},
 };
 
 type Parse<'a, I, O> = dyn Fn(&'a [I], usize) -> Result<(O, usize)> + 'a;
@@ -156,7 +153,9 @@ impl<'a, I, O> Parser<'a, I, O> {
 					Unbounded => (),
 				}
 
-				let Ok((item, item_pos)) = (self.method)(input, pos) else { break };
+				let Ok((item, item_pos)) = (self.method)(input, pos) else {
+					break;
+				};
 				items.push(item);
 				pos = item_pos;
 			}
@@ -203,28 +202,26 @@ impl<'a, I, O> Parser<'a, I, O> {
 	where
 		O: 'a,
 	{
-		Parser::new(
-			move |input: &'a [I], start: usize| {
-				eprintln!("parse: {} ({})", name, start);
-				match (self.method)(input, start) {
-					res @ Ok(_) => {
-						eprintln!("       {} ({}): ok", name, start);
-						res
-					},
-					Err(err) => {
-						eprintln!("       {} ({}): error", name, start);
-						match err {
-							Error::Custom { .. } => Err(err),
-							_ => Err(Error::Custom {
-								message: format!("failed to parse {}", name),
-								position: start,
-								inner: Some(Box::new(err)),
-							}),
-						}
-					},
+		Parser::new(move |input: &'a [I], start: usize| {
+			eprintln!("parse: {} ({})", name, start);
+			match (self.method)(input, start) {
+				res @ Ok(_) => {
+					eprintln!("       {} ({}): ok", name, start);
+					res
 				}
-			},
-		)
+				Err(err) => {
+					eprintln!("       {} ({}): error", name, start);
+					match err {
+						Error::Custom { .. } => Err(err),
+						_ => Err(Error::Custom {
+							message: format!("failed to parse {}", name),
+							position: start,
+							inner: Some(Box::new(err)),
+						}),
+					}
+				}
+			}
+		})
 	}
 
 	/// Mark parser as expected, abort early when failed in ordered choice.
@@ -260,7 +257,7 @@ where
 			return Err(Error::Mismatch {
 				message: "end of input reached".to_owned(),
 				position: start,
-			})
+			});
 		};
 		Ok((s.clone(), start + 1))
 	})
@@ -272,7 +269,9 @@ where
 	I: Clone + PartialEq + Display,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		let Some(s) = input.get(start) else {
+			return Err(Error::Incomplete);
+		};
 		if t != *s {
 			return Err(Error::Mismatch {
 				message: format!("expect: {}, found: {}", t, s),
@@ -295,7 +294,9 @@ where
 			if index == tag.len() {
 				return Ok((tag, pos));
 			}
-			let Some(s) = input.get(pos) else { return Err(Error::Incomplete) };
+			let Some(s) = input.get(pos) else {
+				return Err(Error::Incomplete);
+			};
 			if tag[index] != *s {
 				return Err(Error::Mismatch {
 					message: format!("seq {:?} expect: {:?}, found: {:?}", tag, tag[index], s),
@@ -312,7 +313,9 @@ pub fn tag<'a, 'b: 'a>(tag: &'b str) -> Parser<'a, char, &'a str> {
 	Parser::new(move |input: &'a [char], start: usize| {
 		let mut pos = start;
 		for c in tag.chars() {
-			let Some(&s) = input.get(pos) else { return Err(Error::Incomplete) };
+			let Some(&s) = input.get(pos) else {
+				return Err(Error::Incomplete);
+			};
 			if c != s {
 				return Err(Error::Mismatch {
 					message: format!("tag {:?} expect: {:?}, found: {}", tag, c, s),
@@ -361,7 +364,9 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		let Some(s) = input.get(start) else {return  Err(Error::Incomplete) };
+		let Some(s) = input.get(start) else {
+			return Err(Error::Incomplete);
+		};
 		if !set.contains(s) {
 			return Err(Error::Mismatch {
 				message: format!("expect one of: {}, found: {}", set.to_str(), s),
@@ -379,7 +384,9 @@ where
 	S: Set<I> + ?Sized,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		let Some(s) = input.get(start) else {return Err(Error::Incomplete) };
+		let Some(s) = input.get(start) else {
+			return Err(Error::Incomplete);
+		};
 		if set.contains(s) {
 			return Err(Error::Mismatch {
 				message: format!("expect none of: {}, found: {}", set.to_str(), s),
@@ -397,7 +404,9 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		let Some(s) = input.get(start) else {
+			return Err(Error::Incomplete);
+		};
 		if !predicate(s.clone()) {
 			return Err(Error::Mismatch {
 				message: format!("is_a predicate failed on: {}", s),
@@ -415,7 +424,9 @@ where
 	F: Fn(I) -> bool + 'a,
 {
 	Parser::new(move |input: &'a [I], start: usize| {
-		let Some(s) = input.get(start) else { return Err(Error::Incomplete) };
+		let Some(s) = input.get(start) else {
+			return Err(Error::Incomplete);
+		};
 		if predicate(s.clone()) {
 			return Err(Error::Mismatch {
 				message: format!("not_a predicate failed on: {}", s),
@@ -507,8 +518,7 @@ impl<'a, I: 'a, O: 'a, U: 'a> Mul<Parser<'a, I, U>> for Parser<'a, I, O> {
 
 	fn mul(self, other: Parser<'a, I, U>) -> Self::Output {
 		Parser::new(move |input: &'a [I], start: usize| {
-			(self.method)(input, start)
-				.and_then(|(_, pos1)| (other.method)(input, pos1).map(|(out2, pos2)| (out2, pos2)))
+			(self.method)(input, start).and_then(|(_, pos1)| (other.method)(input, pos1))
 		})
 	}
 }
@@ -851,18 +861,19 @@ mod tests {
 		{
 			let parser = sym(b'x').repeat(4);
 			let output = parser.name("name_test_err").parse(input);
-			assert_eq!(output, Err(
-				Error::Custom {
+			assert_eq!(
+				output,
+				Err(Error::Custom {
 					message: "failed to parse name_test_err".into(),
 					position: 0,
 					inner: Some(Box::new(Error::Mismatch {
 						message: "expect repeat at least 4 times, found 3 times".into(),
-						position: 0 
+						position: 0
 					}))
-				}
-			))
+				})
+			)
 		}
-	} 
+	}
 
 	#[cfg(feature = "trace")]
 	#[test]
@@ -880,16 +891,17 @@ mod tests {
 		{
 			let parser = sym(b'x').repeat(4);
 			let output = parser.name("name_test_err").parse(input);
-			assert_eq!(output, Err(
-				Error::Custom {
+			assert_eq!(
+				output,
+				Err(Error::Custom {
 					message: "failed to parse name_test_err".into(),
 					position: 0,
 					inner: Some(Box::new(Error::Mismatch {
 						message: "expect repeat at least 4 times, found 3 times".into(),
-						position: 0 
+						position: 0
 					}))
-				}
-			))
+				})
+			)
 		}
-	} 
+	}
 }
