@@ -330,41 +330,41 @@ This is the primary reason why I started to develop pom.
 
 ## List of predefined parsers and combinators in pom
 
-| Basic Parsers  | Description                              |
-| -------------- | ---------------------------------------- |
-| empty()        | Always succeeds, consume no input.       |
-| end()          | Match end of input.                      |
-| sym(t)        | Match a single terminal symbol *t*.       |
-| seq(s)         | Match sequence of symbols.               |
-| list(p,s)      | Match list of *p*, separated by *s*.     |
-| one_of(set)    | Success when current input symbol is one of the set. |
-| none_of(set)   | Success when current input symbol is none of the set. |
-| is_a(predicate)  | Success when predicate return true on current input symbol. |
+| Basic Parsers    | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| empty()          | Always succeeds, consume no input.                           |
+| end()            | Match end of input.                                          |
+| sym(t)           | Match a single terminal symbol *t*.                          |
+| seq(s)           | Match sequence of symbols.                                   |
+| list(p,s)        | Match list of *p*, separated by *s*.                         |
+| one_of(set)      | Success when current input symbol is one of the set.         |
+| none_of(set)     | Success when current input symbol is none of the set.        |
+| is_a(predicate)  | Success when predicate return true on current input symbol.  |
 | not_a(predicate) | Success when predicate return false on current input symbol. |
-| take(n)        | Read *n* symbols.                        |
-| skip(n)        | Skip *n* symbols.                        |
-| call(pf)       | Call a parser factory, can used to create recursive parsers. |
+| take(n)          | Read *n* symbols.                                            |
+| skip(n)          | Skip *n* symbols.                                            |
+| call(pf)         | Call a parser factory, can used to create recursive parsers. |
 
 These are functions to create basic parsers.
 
 
-| Parser Combinators | Description                              |
-| ------------------ | ---------------------------------------- |
-| p &#124; q         | Match p or q, return result of the first success. |
-| p + q              | Match p and q, if both success return a pair of results. |
-| p - q              | Match p and q, if both success return result of p. |
-| p * q              | Match p and q, if both success return result of q. |
-| p >> q             | Parse p and get result P, then parse and return result of q(P). |
-| -p                 | Success when p success, doen't consume input. |
-| !p                 | Success when p fail, doen't consume input. |
-| p.opt()            | Make parser optional.                    |
+| Parser Combinators | Description                                                                                                                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| p &#124; q         | Match p or q, return result of the first success.                                                                                                                                                                     |
+| p + q              | Match p and q, if both success return a pair of results.                                                                                                                                                              |
+| p - q              | Match p and q, if both success return result of p.                                                                                                                                                                    |
+| p * q              | Match p and q, if both success return result of q.                                                                                                                                                                    |
+| p >> q             | Parse p and get result P, then parse and return result of q(P).                                                                                                                                                       |
+| -p                 | Success when p success, doen't consume input.                                                                                                                                                                         |
+| !p                 | Success when p fail, doen't consume input.                                                                                                                                                                            |
+| p.opt()            | Make parser optional.                                                                                                                                                                                                 |
 | p.repeat(m..n)     | `p.repeat(0..)` repeat p zero or more times<br>`p.repeat(1..)` repeat p one or more times<br>`p.repeat(1..4)` match p at least 1 and at most 3 times<br>`p.repeat(1..=3)` also match p at least 1 and at most 3 times |
-| p.map(f)           | Convert parser result to desired value.  |
-| p.convert(f)       | Convert parser result to desired value, fail in case of conversion error. |
-| p.pos()            | Get input position after matching p.     |
-| p.collect()        | Collect all matched input symbols.       |
-| p.discard()        | Discard parser output.                   |
-| p.name(_)          | Give parser a name to identify parsing errors. |
+| p.map(f)           | Convert parser result to desired value.                                                                                                                                                                               |
+| p.convert(f)       | Convert parser result to desired value, fail in case of conversion error.                                                                                                                                             |
+| p.pos()            | Get input position after matching p.                                                                                                                                                                                  |
+| p.collect()        | Collect all matched input symbols.                                                                                                                                                                                    |
+| p.discard()        | Discard parser output.                                                                                                                                                                                                |
+| p.name(_)          | Give parser a name to identify parsing errors.                                                                                                                                                                        |
 
 These are operations to create new parsers based on other parsers. The choice of operators is established by their operator precedence, arity and "meaning".
 

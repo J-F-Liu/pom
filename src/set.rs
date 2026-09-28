@@ -125,5 +125,4 @@ mod test {
 		assert!(one_of(&(..)).parse(b"z").is_ok());
 		assert!(one_of(&(..)).parse(b"1").is_ok());
 	}
-
 }
