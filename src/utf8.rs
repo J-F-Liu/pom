@@ -30,10 +30,8 @@ impl<'a, O> Parser<'a, O> {
 	where
 		O: 'a,
 	{
-		Parser(self.0.collect().map(
-			// UNSAFE: Because we only could have constructed this object from other utf8::Parser objects, the match space must be valid UTF-8
-			|s| unsafe { str::from_utf8_unchecked(s) },
-		))
+		// Validate the span, because a user closure may report a non-UTF-8 range.
+		Parser(self.0.collect().convert(str::from_utf8))
 	}
 
 	// Remaining methods in impl only delegate to base parser::Parser
@@ -290,7 +288,7 @@ pub fn take<'a>(n: usize) -> Parser<'a, &'a str> {
 	Parser::new(move |input: &'a [u8], start: usize| {
 		let mut byte_pos = start;
 		for _ in 0..n {
-			let (ch, size) = decode_utf8(&input[start..]);
+			let (ch, size) = decode_utf8(&input[byte_pos..]);
 			if ch.is_none() {
 				return no_utf8(byte_pos, size);
 			}
@@ -308,7 +306,7 @@ pub fn skip<'a>(n: usize) -> Parser<'a, ()> {
 	Parser::new(move |input: &'a [u8], start: usize| {
 		let mut byte_pos = start;
 		for _ in 0..n {
-			let (ch, size) = decode_utf8(&input[start..]);
+			let (ch, size) = decode_utf8(&input[byte_pos..]);
 			if ch.is_none() {
 				return no_utf8(byte_pos, size);
 			}
@@ -327,7 +325,7 @@ pub fn take_bytes<'a>(n: usize) -> Parser<'a, &'a str> {
 		// the final character using bstr::decode_last_utf8.
 		let mut byte_pos = start;
 		loop {
-			let (ch, size) = decode_utf8(&input[start..]);
+			let (ch, size) = decode_utf8(&input[byte_pos..]);
 			if ch.is_none() {
 				return no_utf8(byte_pos, size);
 			}
@@ -354,7 +352,7 @@ pub fn skip_bytes<'a>(n: usize) -> Parser<'a, ()> {
 		// FIXME: See note on take_bytes.
 		let mut byte_pos = start;
 		loop {
-			let (ch, size) = decode_utf8(&input[start..]);
+			let (ch, size) = decode_utf8(&input[byte_pos..]);
 			if ch.is_none() {
 				return no_utf8(byte_pos, size);
 			}
